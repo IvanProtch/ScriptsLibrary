@@ -8,6 +8,7 @@ using Intermech.Workflow;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml;
 public class Script
@@ -45,6 +46,11 @@ public class Script
     /// </summary>
     const int connectedContectId = 12677;
 
+    /// <summary>
+    /// Объекты, которые не нужно переводить на согласование
+    /// </summary>
+    private List<int> objTypesToExcludeLCstepChanging = new List<int> { 1231/*оснастка*/, 1128/*материал*/, 1096/*материал составной*/, 1118/*оборудование*/, 1094/*модель оборудования*/ };
+
     List<int> techObjTypeListAll;
     List<int> materialObjTypeListAll;
     List<int> TPListAll;
@@ -57,6 +63,10 @@ public class Script
     const int lcStep_Sogl = 1023;
     const int lcStep_Final = 1024;
     const int lcStep_Development = 1021;
+
+    private const int TechObj_lcStep_Sogl = 1056;
+    private const int TechObj_lcStep_Final = 1058;
+    private const int TechObj_lcStep_Development = 1050;
     #endregion
 
     #region Типы связей
@@ -196,7 +206,7 @@ public class Script
 
         techIIs = techIIs
         .Where(ii => TechIITypes.Contains(UserSession.GetObject(ii).TypeID))
-        .Where(ii => ii != IIid)
+        //.Where(ii => ii != IIid)
         .ToList();
 
         return techIIs;
@@ -265,6 +275,9 @@ public class Script
 
     public void Execute(IActivity activity)
     {
+        if (Debugger.IsAttached)
+            Debugger.Break();
+
         IUserSession UserSession = activity.Session;
         string FinalMessage = string.Empty;
         string mailToAdmins = string.Empty;
@@ -424,6 +437,29 @@ public class Script
                             " чтобы ИИ находилось на шаге 'Согласование и утверждение'.\r\n",
                             II.NameInMessages, II.ObjectID);
                             isChecked = false;
+                        }
+
+                        //Переводим объекты состава на шаг "в разработке"
+                        foreach (long item in consistance)
+                        {
+                            IDBObject obj = UserSession.GetObject(item);
+                            if (!objTypesToExcludeLCstepChanging.Contains(obj.TypeID))
+                            {
+                                if (obj.LCStep == TechObj_lcStep_Sogl)
+                                {
+                                    try
+                                    {
+                                        obj.LCStep = TechObj_lcStep_Development;
+                                    }
+                                    catch (KernelException exc)
+                                    {
+                                        mailToAdmins += string.Format("При переводе {0} на шаг 'В разработке' возникла системная ошибка: \r\n" +
+                                        "Источник: {1}; \r\n" +
+                                        "Сообщение: {2}; \r\n",
+                                        obj.NameInMessages, exc.Source, exc.Message);
+                                    }
+                                }
+                            }
                         }
                     }
                 }

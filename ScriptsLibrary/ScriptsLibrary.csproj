@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Script.cs" />
     <Compile Include="Изменение шага ЖЦ св ИИ\Актуализация связанных техн ИИ.cs" />
     <Compile Include="Выбор исполнителя из группы.cs" />
     <Compile Include="Экспорт данных\Выгрузка PDF из констр ИИ и СБ.cs" />

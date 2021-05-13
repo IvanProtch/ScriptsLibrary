@@ -8,11 +8,12 @@ using Intermech.Workflow;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 
 // Если в составе есть объекты не переведенные на шаг Актуализация, первести, исключая следующие типы:
 // оснастка, материал, материал составной, оборудование, модель оборудования -- не переводить, если не переведены
-public class Script0
+public class Script
 {
     public ICSharpScriptContext ScriptContext { get; private set; }
 
@@ -217,7 +218,7 @@ public class Script0
 
         techIIs = techIIs
         .Where(ii => TechIITypes.Contains(UserSession.GetObject(ii).TypeID))
-        .Where(ii => ii != IIid)
+        //.Where(ii => ii != IIid)
         .ToList();
 
         return techIIs;
@@ -286,6 +287,9 @@ public class Script0
 
     public void Execute(IActivity activity)
     {
+        if (Debugger.IsAttached)
+            Debugger.Break();
+
         IUserSession UserSession = activity.Session;
         string FinalMessage = string.Empty;
         string mailToAdmins = string.Empty;
@@ -463,13 +467,6 @@ public class Script0
                                         "Сообщение: {2}; \r\n",
                                         obj.NameInMessages, exc.Source, exc.Message);
                                     }
-                                }
-                                else if ((obj.LCStep != TechObj_lcStep_Development) && (obj.LCStep != TechObj_lcStep_Sogl))
-                                {
-                                    FinalMessage += string.Format("\r\nДля перевода на шаг 'Согласование и утверждение' [{0}]|[{1}] необходимо," +
-                                    " чтобы объект находился на шаге 'В разработке'.\r\n",
-                                    obj.NameInMessages, obj.ObjectID);
-                                    isChecked = false;
                                 }
                             }
                         }
