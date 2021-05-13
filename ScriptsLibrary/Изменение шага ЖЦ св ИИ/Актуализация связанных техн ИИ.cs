@@ -50,17 +50,25 @@ using Intermech.Interfaces.Compositions;
         List<int> TPListAll;
         List<int> IIListAll;
         List<int> TechIITypes;
-
+        /// <summary>
+        /// Объекты, которые не нужно переводить на согласование
+        /// </summary>
+        private List<int> objTypesToExcludeLCstepChanging = new List<int> { 1231/*оснастка*/, 1128/*материал*/, 1096/*материал составной*/, 1118/*оборудование*/, 1094/*модель оборудования*/ };
         const int TechIIType = 2761;
         const int TechSvIIType = 2762;
 
         const int lcStep_Sogl = 1023;
         const int lcStep_Final = 1024;
         const int lcStep_Development = 1021;
+
+
+        private const int TechObj_lcStep_Sogl = 1056;
+        private const int TechObj_lcStep_Final = 1058;
+        private const int TechObj_lcStep_Development = 1050;
         #endregion
 
-        #region Типы связей
-        const int relTypeChangingByII = 1007;//Изменяется по извещению
+    #region Типы связей
+    const int relTypeChangingByII = 1007;//Изменяется по извещению
         const int relTypeDocNaIzd = 1004; //Документация на изделие
         const int relTypeConsist = 1; //Состав изделия
         const int relTypeTechConsist = 1002; //Технологический состав
@@ -172,7 +180,7 @@ using Intermech.Interfaces.Compositions;
 
             techIIs = techIIs
             .Where(ii => TechIITypes.Contains(UserSession.GetObject(ii).TypeID))
-            .Where(ii => ii != IIid)
+            //.Where(ii => ii != IIid)
             .ToList();
 
             return techIIs;
@@ -332,6 +340,16 @@ using Intermech.Interfaces.Compositions;
                                             obj.NameInMessages, II.NameInMessages);
                                     }
                                 }
+
+                                if (obj.CheckoutBy > 0)
+                                {
+                                    IDBObject redactor = UserSession.GetObject(obj.CheckoutBy);
+
+                                    FinalMessage += string.Format("\r\n[{0}] взял объект [{1}]|[{3}] из [{2}]|[{4}] на редактирование.\r\n",
+                                    redactor.NameInMessages, obj.NameInMessages, II.NameInMessages, obj.ObjectID, II.ObjectID);
+
+                                    isChecked = false;
+                                }
                             }
 
                             //Переводим ИИ на шаг "актуализация"
@@ -361,6 +379,29 @@ using Intermech.Interfaces.Compositions;
                                 II.NameInMessages, II.ObjectID);
                                 isChecked = false;
                             }
+
+                            //Переводим объекты состава на шаг "актуализация"
+                            foreach (long item in consistance)
+                            {
+                                IDBObject obj = UserSession.GetObject(item);
+                                if (!objTypesToExcludeLCstepChanging.Contains(obj.TypeID))
+                                {
+                                    if (obj.LCStep == TechObj_lcStep_Sogl)
+                                    {
+                                        try
+                                        {
+                                            obj.LCStep = TechObj_lcStep_Final;
+                                        }
+                                        catch (KernelException exc)
+                                        {
+                                            mailToAdmins += string.Format("При переводе {0} на шаг 'Актуализация' возникла системная ошибка: \r\n" +
+                                            "Источник: {1}; \r\n" +
+                                            "Сообщение: {2}; \r\n",
+                                            obj.NameInMessages, exc.Source, exc.Message);
+                                        }
+                                    }
+                                }
+                            }   
                         }
                     }
 
