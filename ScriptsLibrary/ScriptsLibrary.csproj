@@ -34,13 +34,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Intermech.Client.Core, Version=6.0.5.1560, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Extensions, Version=6.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Extensions.Client, Version=6.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Extensions.Interfaces, Version=6.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Interfaces, Version=6.0.5.1560, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Interfaces.Client, Version=6.0.5.1560, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Interfaces.Workflow, Version=6.0.5.1560, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces.Client, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces.Workflow, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Interfaces.XmlExchange, Version=2.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -54,8 +53,11 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Script.cs" />
+    <Compile Include="Изменение шага ЖЦ св ИИ\Актуализация связанных техн ИИ_адм версия.cs" />
     <Compile Include="Изменение шага ЖЦ св ИИ\Актуализация связанных техн ИИ.cs" />
     <Compile Include="Выбор исполнителя из группы.cs" />
+    <Compile Include="Изменение шага ЖЦ св ИИ\Перевод на шаг %27В разработке%27 связанных техн ИИ_адм версия.cs" />
+    <Compile Include="Изменение шага ЖЦ св ИИ\Согласование связанных техн ИИ.cs" />
     <Compile Include="Экспорт данных\Выгрузка PDF из констр ИИ и СБ.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП обратно.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП.cs" />
@@ -74,7 +76,7 @@
     <Compile Include="Проверка редактируемости состава объекта.cs" />
     <Compile Include="Проверка цехозахода ИИ материалы.cs" />
     <Compile Include="Скрипт для процесса %27Нормирование ИИ%27.cs" />
-    <Compile Include="Изменение шага ЖЦ св ИИ\Согласование связанных техн ИИ.cs" />
+    <Compile Include="Изменение шага ЖЦ св ИИ\Согласование связанных техн ИИ_адм версия.cs" />
     <Compile Include="Экспорт данных\Экспорт выбранных значений атрибутов в Excel.cs" />
   </ItemGroup>
   <ItemGroup>

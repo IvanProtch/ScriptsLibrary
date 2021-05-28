@@ -14,10 +14,6 @@ using Intermech.Interfaces.Compositions;
     public class Script
     {
         public ICSharpScriptContext ScriptContext { get; private set; }
-        /// <summary>
-        /// Список администраторов для отправки письма со специальными ошибками
-        /// </summary>
-        const string processVar_listOfAdmins = "список САПР";
 
         #region Константы
         /// <summary>
@@ -88,45 +84,6 @@ using Intermech.Interfaces.Compositions;
 
         #endregion
 
-
-        /// <summary>
-        /// Отправка сообщения на почту пользователям из переменной
-        /// </summary>
-        /// <param name="activity"></param>
-        /// <param name="UserSession"></param>
-        /// <param name="message"></param>
-        /// <param name="subject"></param>
-        private IDBObject[] SendMessage(IActivity activity, IUserSession UserSession, string message, string subject)
-        {
-            //группа администраторов БМЗ САПР
-            //3450327
-            //3450583
-            //51448525
-            //8177509
-            if (activity.Variables.Find(processVar_listOfAdmins) == null)
-            {
-                long[] toUsers_Default = new long[] { 3450327, 3450583, 51448525, 8177509 };
-                return SendMessage(activity, UserSession, message, subject, toUsers_Default);
-            }
-            IRouterService router = UserSession.GetCustomService(typeof(IRouterService)) as IRouterService;
-
-            ParticipantList users = new ParticipantList();
-            users.AsString = activity.Variables.Find(processVar_listOfAdmins).Value;
-            long[] toUsers = users.ObjectIDs.ToArray();
-
-            IDBObject[] mailMesseges = router.CreateMessage(UserSession.SessionGUID, toUsers, subject, message, UserSession.UserID); ;
-
-            foreach (IDBObject mail in mailMesseges)
-                mail.GetAttributeByName("Процесс").AsInteger = activity.Process.ObjectID;
-
-            return mailMesseges;
-        }
-
-        private IDBObject[] SendMessage(IActivity activity, IUserSession UserSession, string message, string subject, long[] toUsers)
-        {
-            IRouterService router = UserSession.GetCustomService(typeof(IRouterService)) as IRouterService;
-            return router.CreateMessage(UserSession.SessionGUID, toUsers, subject, message, UserSession.UserID);
-        }
 
         /// <summary>
         /// Производит выбор объектов из БД по значению атрибута-селектора
@@ -273,10 +230,6 @@ using Intermech.Interfaces.Compositions;
 
             string FinalMessage = string.Empty;
 
-            string mailToAdmins = string.Empty;
-
-            string exceptionMail = string.Empty;
-
             foreach (IAttachment attachment in activity.Attachments)
             {
                 //Проходим только по конструкторским или технологическим ИИ
@@ -311,7 +264,7 @@ using Intermech.Interfaces.Compositions;
                             //Проверка принадлежности организации
                             if ((FromOrg(idBMZ, UserSession, techIIs[i]) == null || FromOrg(idKSK, UserSession, techIIs[i]) == null))
                             {
-                                mailToAdmins += string.Format("\r\n[{0}]|[{1}] значение атрибута 'организация-источник' пустое," +
+                                FinalMessage += string.Format("\r\n[{0}]|[{1}] значение атрибута 'организация-источник' пустое," +
                                 " проверьте принадлежность ИИ БМЗ (или ОП \"КСК - Брянск\"), укажите значение атрибута и актуализируйте.\r\n\r\n",
                                 II.NameInMessages, II.ObjectID);
                                 isChecked = false;
@@ -366,7 +319,7 @@ using Intermech.Interfaces.Compositions;
                                     }
                                     catch (KernelException exc)
                                     {
-                                        mailToAdmins += string.Format("При переводе {0} на шаг 'Актуализация' возникла системная ошибка: \r\n" +
+                                        FinalMessage += string.Format("При переводе {0} на шаг 'Актуализация' возникла системная ошибка: \r\n" +
                                         "Источник: {1} \r\n" +
                                         "Сообщение: {2} \r\n\r\n",
                                         II.NameInMessages, exc.Source, exc.Message);
@@ -396,7 +349,7 @@ using Intermech.Interfaces.Compositions;
                                         }
                                         catch (KernelException exc)
                                         {
-                                            mailToAdmins += string.Format("При переводе {0} на шаг 'Актуализация' возникла системная ошибка: \r\n" +
+                                            FinalMessage += string.Format("При переводе {0} на шаг 'Актуализация' возникла системная ошибка: \r\n" +
                                             "Источник: {1}; \r\n" +
                                             "Сообщение: {2}; \r\n",
                                             obj.NameInMessages, exc.Source, exc.Message);
@@ -414,11 +367,6 @@ using Intermech.Interfaces.Compositions;
             if (FinalMessage.Length > 0)
             {
                 throw new NotificationException(FinalMessage);
-            }
-
-            if (mailToAdmins.Length > 0)
-            {
-                SendMessage(activity, UserSession, mailToAdmins, "Ошибка актуализации технологических ИИ");
             }
 
         }
