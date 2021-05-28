@@ -1,4 +1,9 @@
-﻿using Intermech;
+﻿//При возникновении системной ошибки, отправляется почтовое сообщение группе пользователей
+//из переменной процесса (processVar_listOfAdmins = "список САПР"). В случае если значение этой 
+//переменной не задано, письмо отправляется пользователям с 
+//id [3450327, 3450583, 51448525, 8177509].
+
+using Intermech;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Workflow;
 using Intermech.Kernel.Search;
@@ -67,8 +72,8 @@ using Intermech.Interfaces.Compositions;
         private const int TechObj_lcStep_Development = 1050;
         #endregion
 
-    #region Типы связей
-    const int relTypeChangingByII = 1007;//Изменяется по извещению
+        #region Типы связей
+        const int relTypeChangingByII = 1007;//Изменяется по извещению
         const int relTypeDocNaIzd = 1004; //Документация на изделие
         const int relTypeConsist = 1; //Состав изделия
         const int relTypeTechConsist = 1002; //Технологический состав

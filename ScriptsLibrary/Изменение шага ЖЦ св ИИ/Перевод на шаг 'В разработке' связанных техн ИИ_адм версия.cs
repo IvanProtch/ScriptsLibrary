@@ -1,4 +1,6 @@
-﻿using Intermech;
+﻿//При возникновении системной ошибки, сообщение не отправляется в виде письма,
+//а выводится в окне
+using Intermech;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Compositions;
 using Intermech.Interfaces.Contexts;

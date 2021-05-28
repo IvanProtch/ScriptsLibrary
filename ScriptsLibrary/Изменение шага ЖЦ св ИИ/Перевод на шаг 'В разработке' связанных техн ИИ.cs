@@ -1,4 +1,8 @@
-﻿using Intermech;
+﻿//При возникновении системной ошибки, отправляется почтовое сообщение группе пользователей
+//из переменной процесса (processVar_listOfAdmins = "список САПР"). В случае если значение этой 
+//переменной не задано, письмо отправляется пользователям с 
+//id [3450327, 3450583, 51448525, 8177509].
+using Intermech;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Compositions;
 using Intermech.Interfaces.Contexts;
