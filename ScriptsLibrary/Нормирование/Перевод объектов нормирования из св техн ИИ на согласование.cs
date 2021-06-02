@@ -117,11 +117,14 @@ namespace Scripts
 
         public void Execute(IActivity activity)
         {
+            if (Debugger.IsAttached)
+                Debugger.Break();
+
             IUserSession UserSession = activity.Session;
             string FinalMessage = string.Empty;
             string mailToAdmins = string.Empty;
 
-            objNorm = new List<int> {/* 1212, 1193,*/ 1175 };
+            objNorm = new List<int> { 1212, 1193, 1175 };
 
             TechIITypes = new List<int>();
             TechIITypes.Add(TechIIType);
