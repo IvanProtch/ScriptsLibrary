@@ -1,4 +1,5 @@
-﻿using Intermech;
+﻿//Проверка заявок на техподдержку
+using Intermech;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Workflow;
 using System;

@@ -1,4 +1,5 @@
-﻿using Intermech.Interfaces;
+﻿//Экспорт выбранных значений атрибутов в Excel
+using Intermech.Interfaces;
 using Intermech.Interfaces.Workflow;
 using Intermech.Kernel.Search;
 using System;

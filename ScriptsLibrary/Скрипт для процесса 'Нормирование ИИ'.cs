@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Скрипт для процесса 'Нормирование ИИ'
+using System;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Workflow;
 using Intermech;

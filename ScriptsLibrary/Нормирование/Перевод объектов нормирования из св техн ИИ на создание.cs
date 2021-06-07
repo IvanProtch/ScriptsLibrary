@@ -1,4 +1,5 @@
-﻿using Intermech;
+﻿//Перевод объектов нормирования из св техн ИИ на создание
+using Intermech;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Compositions;
 using Intermech.Interfaces.Contexts;

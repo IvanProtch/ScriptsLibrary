@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Проверка подписей в графе 'Разработал (технология)'
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;

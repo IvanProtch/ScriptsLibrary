@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Проверка наличия вложений и присвоение процессу уникального имени
+using System;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Workflow;
 using Intermech;

@@ -1,4 +1,5 @@
-﻿using Intermech;
+﻿//Изменение значения атрибута 'Архив' у ТП
+using Intermech;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Compositions;
 using Intermech.Interfaces.Contexts;

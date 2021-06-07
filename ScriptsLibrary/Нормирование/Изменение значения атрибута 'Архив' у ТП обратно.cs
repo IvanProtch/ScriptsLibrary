@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Изменение значения атрибута 'Архив' у ТП обратно
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;

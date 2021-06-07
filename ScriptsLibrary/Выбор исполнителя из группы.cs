@@ -1,4 +1,4 @@
-﻿
+﻿//Выбор исполнителя из группы
 using System;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Workflow;

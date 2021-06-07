@@ -1,4 +1,5 @@
-﻿using Intermech;
+﻿//Перевод ТП из св техн ИИ на шаг 'в разработке'
+using Intermech;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Compositions;
 using Intermech.Interfaces.Contexts;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Выгрузка PDF из констр ИИ и СБ
+using System;
 using System.IO;
 using System.Data;
 using System.Linq;
