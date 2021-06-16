@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="EcoDiffReport.Script">
+    <Position X="2" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Script.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EcoDiffReport.Script10">
+    <Position X="5.25" Y="1.25" Width="3" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Class Name="EcoDiffReport.Script10.Material">
+        <TypeIdentifier>
+          <NewMemberFileName>Отчет по сравнению составов базового и контексту по ИИ (было-стало ) БМЗ.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="EcoDiffReport.Script10.Link">
+        <TypeIdentifier>
+          <NewMemberFileName>Отчет по сравнению составов базового и контексту по ИИ (было-стало ) БМЗ.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="EcoDiffReport.Script10.Item">
+        <TypeIdentifier>
+          <NewMemberFileName>Отчет по сравнению составов базового и контексту по ИИ (было-стало ) БМЗ.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AEAAAECBABAAAEQAAAQQAAAAIAAAAAAAAQBCAAGAAAA=</HashCode>
+      <FileName>Отчет по сравнению составов базового и контексту по ИИ (было-стало ) БМЗ.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9.75" />
+</ClassDiagram>
