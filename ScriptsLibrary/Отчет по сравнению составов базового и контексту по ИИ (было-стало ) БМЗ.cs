@@ -228,12 +228,14 @@ namespace EcoDiffReport
 
                     foreach (DataRow row in dt.Rows)
                     {
-                        if (row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() == "БМЗ")
+                        if (Convert.ToInt32(row["F_OBJECT_TYPE"]) == zagot &&
+                            row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
                         {
-                            var item = GetItem(row, itemsDict, false);
-                            if (item != null)
-                                AddToLog("item " + item.ToString());
+                            continue;
                         }
+                        var item = GetItem(row, itemsDict, true);
+                        if (item != null)
+                            AddToLog("item " + item.ToString());
                     }
 
                     itemsDict.Remove(headerObj.ObjectID);
@@ -326,12 +328,14 @@ namespace EcoDiffReport
 
                     foreach (DataRow row in dt.Rows)
                     {
-                        if (row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() == "БМЗ")
+                        if (Convert.ToInt32(row["F_OBJECT_TYPE"]) == zagot &&
+                            row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
                         {
-                            var item = GetItem(row, itemsDict, false);
-                            if (item != null)
-                                AddToLog("item " + item.ToString());
+                            continue;
                         }
+                        var item = GetItem(row, itemsDict, false);
+                        if (item != null)
+                            AddToLog("item " + item.ToString());
                     }
 
                     itemsDict.Remove(headerObjBase.ObjectID);
