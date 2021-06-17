@@ -34,7 +34,7 @@ namespace EcoDiffReport
         }
     }
 
-    public class Script10
+    public class Script1
     {
         public bool Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
         {
@@ -46,7 +46,9 @@ namespace EcoDiffReport
                 string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
                 if (System.IO.File.Exists(file))
                     System.IO.File.Delete(file);
-                AddToLog("Запускаем скрипт v 2.2");
+                AddToLog("Запускаем скрипт v 2.3");
+
+                long org_BMZ = 3251710;
                 //throw new Exception("jhghjhv");
                 standart = MetaDataHelper.GetObjectTypeID("cad00252-306c-11d8-b4e9-00304f19f545"); //Стандартные
 
@@ -147,7 +149,7 @@ namespace EcoDiffReport
                 ColumnNameMapping.Guid, SortOrders.NONE, 0));
                 if (addBmzFields)
                 {
-                    attrId = MetaDataHelper.GetAttributeTypeID("120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/);
+                    attrId = MetaDataHelper.GetAttributeTypeID("84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/);
                     columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
                     ColumnNameMapping.Guid, SortOrders.NONE, 0));
 
@@ -155,6 +157,9 @@ namespace EcoDiffReport
                     //columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
                     //ColumnNameMapping.Guid, SortOrders.NONE, 0));
 
+                    attrId = MetaDataHelper.GetAttributeTypeID("120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/);
+                    columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
+                    ColumnNameMapping.Guid, SortOrders.NONE, 0));
                 }
 
                 attrId = MetaDataHelper.GetAttributeTypeID(new Guid(Intermech.SystemGUIDs.attributeSubstituteInGroup) /*Номер заменителя в группе*/);
@@ -167,7 +172,13 @@ namespace EcoDiffReport
                 attrId = MetaDataHelper.GetAttributeTypeID(Intermech.SystemGUIDs.attributeDesignation /*Обозначение*/);
                 columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
                 ColumnNameMapping.Guid, SortOrders.NONE, 0));
+
+                //attrId = MetaDataHelper.GetAttributeTypeID("84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/);
+                //List<ConditionStructure> conditions = new List<ConditionStructure>();
+                //conditions.Add(new ConditionStructure(attrId, RelationalOperators.Equal, org_BMZ, LogicalOperators.NONE, 0, false));
+
                 //columns.Add(new ColumnDescriptor(MetaDataHelper.GetAttributeTypeID("cad00267-306c-11d8-b4e9-00304f19f545" /*Количество*/), AttributeSourceTypes.Object, ColumnContents.Text, ColumnNameMapping.ID, SortOrders.NONE, 0));
+
                 HybridDictionary tags = new HybridDictionary();
                 DBRecordSetParams dbrsp = new DBRecordSetParams(null,
                 columns != null
@@ -192,33 +203,37 @@ namespace EcoDiffReport
                     }
                 }
 
-                //Первый состав
+                //Первый состав по извещению
                 DataTable dt = DataHelper.GetChildSostavData(items, session, rels, -1, dbrsp, null,
                 Intermech.SystemGUIDs.filtrationBaseVersions, null);
 
 
-
-
-                // Храним пару ид. версии объекта + ид. физической величины
+                // Храним пару ид, версии объекта + ид. физической величины
                 // те объекты у которых посчитали количество
-
+                // состав по извещен
                 Dictionary<Tuple<long, long>, Item> res2 = new Dictionary<Tuple<long, long>, Item>();
+
                 AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
                 if (dt != null)
                 {
                     //dt.WriteXml(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script1.log");
                     Dictionary<long, Item> itemsDict = new Dictionary<long, Item>();
+
                     Item header = new Item();
                     header.Id = headerObj.ID;
                     header.ObjectId = headerObj.ObjectID;
                     header.Caption = headerObj.Caption;
                     header.ObjectType = headerObj.ObjectType;
                     itemsDict[header.ObjectId] = header;
+
                     foreach (DataRow row in dt.Rows)
                     {
-                        var item = GetItem(row, itemsDict, true);
-                        if (item != null)
-                            AddToLog("item " + item.ToString());
+                        if (row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() == "БМЗ")
+                        {
+                            var item = GetItem(row, itemsDict, false);
+                            if (item != null)
+                                AddToLog("item " + item.ToString());
+                        }
                     }
 
                     itemsDict.Remove(headerObj.ObjectID);
@@ -287,6 +302,7 @@ namespace EcoDiffReport
                     AddToLog("Состав1 не найден " + headerObj.ObjectID.ToString());
                 }
 
+
                 long sessionid = session.EditingContextID;
                 //Второй состав без извещения
                 AddToLog("Второй состав без извещения" + headerObjBase.ObjectID.ToString());
@@ -307,11 +323,15 @@ namespace EcoDiffReport
                     header.Caption = headerObjBase.Caption;
                     header.ObjectType = headerObjBase.ObjectType;
                     itemsDict[header.ObjectId] = header;
+
                     foreach (DataRow row in dt.Rows)
                     {
-                        var item = GetItem(row, itemsDict, false);
-                        if (item != null)
-                            AddToLog("item " + item.ToString());
+                        if (row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() == "БМЗ")
+                        {
+                            var item = GetItem(row, itemsDict, false);
+                            if (item != null)
+                                AddToLog("item " + item.ToString());
+                        }
                     }
 
                     itemsDict.Remove(headerObjBase.ObjectID);
@@ -803,6 +823,13 @@ namespace EcoDiffReport
         int matbase;
         int sostMaterial;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="itemsDict">Словарь в который будут заноситься objectid и Item. Организует иерархическую связь между Item.</param>
+        /// <param name="contextMode"></param>
+        /// <returns></returns>
         Item GetItem(DataRow row, Dictionary<long, Item> itemsDict, bool contextMode)
         {
             Item item = null;
@@ -840,12 +867,13 @@ namespace EcoDiffReport
                 //}
             }
             
-            //76468752 for "3ТЭ25К2М.001.11.030 (Воздуховод правый)" 
             long parentId = Convert.ToInt64(row["F_PROJ_ID"]);
-            Link lnk = new Link();
+            Relation lnk = new Relation();
             lnk.Child = item;
-            lnk.LinkId = Convert.ToInt64(row["F_PRJLINK_ID"]); //-76468757
+            lnk.LinkId = Convert.ToInt64(row["F_PRJLINK_ID"]);
             lnk.RelationTypeId = Convert.ToInt32(row["F_RELATION_TYPE"]);
+
+            // если нашли родительский объект в словаре состава
             if (itemsDict.ContainsKey(parentId))
             {
                 Item parent = itemsDict[parentId];
@@ -893,8 +921,7 @@ namespace EcoDiffReport
 
             itemsDict[id] = item;
 
-
-
+            // получаем значение количества и записываем в Link
             object kolvoValue = row["cad00267-306c-11d8-b4e9-00304f19f545"];
             if (kolvoValue is string)
             {
@@ -1029,7 +1056,10 @@ namespace EcoDiffReport
             }
         }
 
-        class Link
+        /// <summary>
+        /// Связь между объектами Item. Через связь записывается исходное значение количества материала
+        /// </summary>
+        class Relation
         {
             public long LinkId;
             public int RelationTypeId;
@@ -1137,6 +1167,9 @@ namespace EcoDiffReport
             }
         }
 
+        /// <summary>
+        /// Объект. Хранит ссылки на связи Link; сумму количества материала (получено из связей)
+        /// </summary>
         class Item
         {
 
@@ -1181,8 +1214,8 @@ namespace EcoDiffReport
             public int ObjectType;
 
             //   public MeasuredValue Kolvo;
-            public List<Link> ChildItems = new List<Link>();
-            public List<Link> ParentItems = new List<Link>();
+            public List<Relation> ChildItems = new List<Relation>();
+            public List<Relation> ParentItems = new List<Relation>();
             public bool HasEmptyKolvo = false;
 
             public IDictionary<long, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
@@ -1191,7 +1224,7 @@ namespace EcoDiffReport
                 MeasuredValue measuredValue = null;
                 IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
                 if (this.isContextObject) hasContextObject = true;
-                foreach (Link item in ParentItems)
+                foreach (Relation item in ParentItems)
                 {
                     bool hasContextObject1 = true;
                     if (checkContextObject)
@@ -1226,6 +1259,10 @@ namespace EcoDiffReport
                 return result;
             }
 
+            /// <summary>
+            /// Если MaterialId == 0 вернет ObjectId
+            /// </summary>
+            /// <returns></returns>
             public long GetKey()
             {
                 return this.MaterialId != 0
