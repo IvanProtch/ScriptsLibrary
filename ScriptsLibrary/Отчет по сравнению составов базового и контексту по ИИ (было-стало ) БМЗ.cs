@@ -18,6 +18,8 @@ using Intermech.Expert.Scenarios;
 using Intermech.Interfaces.Client;
 using Intermech.Navigator.Interfaces.QuickSearch;
 using Intermech.Interfaces.Contexts;
+using Intermech.Collections;
+
 namespace EcoDiffReport
 {
 
@@ -63,7 +65,6 @@ namespace EcoDiffReport
                 sostMaterial = MetaDataHelper.GetObjectTypeID("cad00173-306c-11d8-b4e9-00304f19f545"); //Составной материал
 
                 complects = MetaDataHelper.GetObjectTypeID("cad0025f-306c-11d8-b4e9-00304f19f545"); //Комплекты
-
 
                 //Типы объектов на которые необходимо проверять заполнено ли количество
                 checkKolvoTypes.Add(standart);
@@ -117,12 +118,14 @@ namespace EcoDiffReport
                 if (headerObjBase == null)
                     throw new Exception("Не найдена базовая версия");
                 bool addBmzFields = true;
-
+                
+                #region Инициализация запроса к БД
                 List<int> rels = new List<int>();
                 rels.Add(MetaDataHelper.GetRelationTypeID("cad00023-306c-11d8-b4e9-00304f19f545" /*Состоит из*/));
                 rels.Add(MetaDataHelper.GetRelationTypeID("cad0019f-306c-11d8-b4e9-00304f19f545" /*Состоит из*/));
                 rels.Add(MetaDataHelper.GetRelationTypeID(
                 "cad00584-306c-11d8-b4e9-00304f19f545" /*Состав экземпляров и партий изделий*/));
+
                 List<ColumnDescriptor> columns = new List<ColumnDescriptor>();
                 int attrId = (Int32)ObligatoryObjectAttributes.CAPTION;
                 columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
@@ -190,6 +193,7 @@ namespace EcoDiffReport
 
                 List<ObjInfoItem> items = new List<ObjInfoItem>();
                 items.Add(new ObjInfoItem(headerObj.ObjectID));
+                #endregion
 
                 IDBEditingContextsService idbECS = session.GetCustomService(typeof(IDBEditingContextsService)) as IDBEditingContextsService;
                 var contextObject = idbECS.GetEditingContextsObject(session.SessionGUID, session.EditingContextID, true, false);
@@ -203,20 +207,20 @@ namespace EcoDiffReport
                     }
                 }
 
-                //Первый состав по извещению
+                #region Первый состав по извещению
                 DataTable dt = DataHelper.GetChildSostavData(items, session, rels, -1, dbrsp, null,
                 Intermech.SystemGUIDs.filtrationBaseVersions, null);
 
-
-                // Храним пару ид, версии объекта + ид. физической величины
+                // Храним пару ид версии объекта + ид. физической величины
                 // те объекты у которых посчитали количество
                 // состав по извещен
-                Dictionary<Tuple<long, long>, Item> res2 = new Dictionary<Tuple<long, long>, Item>();
+                Dictionary<Tuple<long, long>, Item> ecoComposition = new Dictionary<Tuple<long, long>, Item>();
 
                 AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
                 if (dt != null)
                 {
                     //dt.WriteXml(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script1.log");
+                    //res2 это перезапсь itemsDict, в первый элемент кортежа пишется 0, во второй objectid. 
                     Dictionary<long, Item> itemsDict = new Dictionary<long, Item>();
 
                     Item header = new Item();
@@ -239,6 +243,9 @@ namespace EcoDiffReport
                     }
 
                     itemsDict.Remove(headerObj.ObjectID);
+
+                    //перезапись скопированных item в Composition
+                    //откидывает item.MaterialId != 0 (те что не выполняют условия, другие типы) ???
                     foreach (var item in itemsDict.Values)
                     {
                         if (item.MaterialId != 0)
@@ -254,7 +261,7 @@ namespace EcoDiffReport
 
                                 Item cachedItem;
                                 var itemKey = new Tuple<long, long>(0, item.GetKey());
-                                if (res2.TryGetValue(itemKey, out cachedItem))
+                                if (ecoComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
                                         cachedItem.KolvoSum.Add(kolvoItemClone.KolvoSum);
@@ -263,7 +270,7 @@ namespace EcoDiffReport
                                 }
                                 else
                                 {
-                                    res2[itemKey] = kolvoItemClone;
+                                    ecoComposition[itemKey] = kolvoItemClone;
                                 }
 
                                 //res2[new Tuple<long, long>(0, item.GetKey())] = mainClone;
@@ -280,7 +287,7 @@ namespace EcoDiffReport
 
                                 Item cachedItem;
                                 var itemKey = new Tuple<long, long>(itemKolvo.Key, item.GetKey());
-                                if (res2.TryGetValue(itemKey, out cachedItem))
+                                if (ecoComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
                                         cachedItem.KolvoSum.Add(kolvoItemClone.KolvoSum);
@@ -289,7 +296,7 @@ namespace EcoDiffReport
                                 }
                                 else
                                 {
-                                    res2[itemKey] = kolvoItemClone;
+                                    ecoComposition[itemKey] = kolvoItemClone;
                                 }
 
                                 //res2[item.ObjectId].KolvoSum = item.GetKolvo();
@@ -298,23 +305,28 @@ namespace EcoDiffReport
                             }
                         }
                     }
+
                 }
                 else
                 {
                     AddToLog("Состав1 не найден " + headerObj.ObjectID.ToString());
                 }
+                #endregion
 
-
+                //сохраняем контекст редактирования
                 long sessionid = session.EditingContextID;
-                //Второй состав без извещения
+
+                #region Второй состав без извещения
                 AddToLog("Второй состав без извещения" + headerObjBase.ObjectID.ToString());
                 session.EditingContextID = 0;
+
                 items = new List<ObjInfoItem>();
                 items.Add(new ObjInfoItem(headerObjBase.ObjectID));
+
                 dt = DataHelper.GetChildSostavData(items, session, rels, -1, dbrsp, null,
                 Intermech.SystemGUIDs.filtrationBaseVersions, null);
 
-                Dictionary<Tuple<long, long>, Item> res1 = new Dictionary<Tuple<long, long>, Item>();
+                Dictionary<Tuple<long, long>, Item> baseComposition = new Dictionary<Tuple<long, long>, Item>();
                 if (dt != null)
                 {
                     //dt.WriteXml(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script2.log");
@@ -356,7 +368,7 @@ namespace EcoDiffReport
 
                                 Item cachedItem;
                                 var itemKey = new Tuple<long, long>(0, item.GetKey());
-                                if (res1.TryGetValue(itemKey, out cachedItem))
+                                if (baseComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
                                         cachedItem.KolvoSum.Add(kolvoItemClone.KolvoSum);
@@ -365,7 +377,7 @@ namespace EcoDiffReport
                                 }
                                 else
                                 {
-                                    res1[itemKey] = kolvoItemClone;
+                                    baseComposition[itemKey] = kolvoItemClone;
                                 }
 
                                 //res1[new Tuple<long, long>(0, item.GetKey())] = mainClone;
@@ -382,7 +394,7 @@ namespace EcoDiffReport
 
                                 Item cachedItem;
                                 var itemKey = new Tuple<long, long>(itemKolvo.Key, item.GetKey());
-                                if (res1.TryGetValue(itemKey, out cachedItem))
+                                if (baseComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
                                         cachedItem.KolvoSum.Add(kolvoItemClone.KolvoSum);
@@ -391,7 +403,7 @@ namespace EcoDiffReport
                                 }
                                 else
                                 {
-                                    res1[itemKey] = kolvoItemClone;
+                                    baseComposition[itemKey] = kolvoItemClone;
                                 }
 
                                 //res1[item.ObjectId].KolvoSum = item.GetKolvo();
@@ -405,34 +417,41 @@ namespace EcoDiffReport
                 {
                     AddToLog("Состав2 не найден " + headerObjBase.ObjectID.ToString());
                 }
+                #endregion
 
+                //возвращаем контекст
                 session.EditingContextID = sessionid;
-                AddToLog("q ");
-                List<Material> res = new List<Material>();
-                foreach (var resItem in res1)
+
+                List<Material> resultComposition = new List<Material>();
+
+                foreach (var resItem in baseComposition)
                 {
-                    var item = resItem.Value;
+                    var baseItem = resItem.Value;
                     Material mat = new Material();
-                    if (item.MaterialDMTO != null)
-                        mat.MaterialDMTO = item.MaterialDMTO;
-                    mat.MaterialId = item.MaterialId;
-                    mat.MaterialCode = item.MaterialCode;
-                    mat.MaterialCaption = item.MaterialCaption;
-                    AddToLog("item0 " + item.ToString());
-                    res.Add(mat);
-                    mat.HasEmptyKolvo1 = item.HasEmptyKolvo;
+                    if (baseItem.MaterialDMTO != null)
+                        mat.MaterialDMTO = baseItem.MaterialDMTO;
+                    mat.MaterialId = baseItem.MaterialId;
+                    mat.MaterialCode = baseItem.MaterialCode;
+                    mat.MaterialCaption = baseItem.MaterialCaption;
+                    AddToLog("item0 " + baseItem.ToString());
+                    //добавляем базовый состав в результат
+                    resultComposition.Add(mat);
+
+                    mat.HasEmptyKolvo1 = baseItem.HasEmptyKolvo;
                     AddToLog("mat01 " + mat.ToString());
-                    if (item.KolvoSum != null)
+                    if (baseItem.KolvoSum != null)
                     {
                         AddToLog("item.KolvoSum != null");
-                        mat.Kolvo1 = item.KolvoSum.Value;
-                        mat.MeasureId = item.KolvoSum.MeasureID;
+
+                        //записываем количество из базовой версии
+                        mat.Kolvo1 = baseItem.KolvoSum.Value;
+                        mat.MeasureId = baseItem.KolvoSum.MeasureID;
                         var descr = MeasureHelper.FindDescriptor(mat.MeasureId);
                         if (descr != null)
                             mat.EdIzm = descr.ShortName;
                         else
                         {
-                            AddToLog("descr = null  item.KolvoSum = " + item.KolvoSum.Caption + "  MeasureId = " +
+                            AddToLog("descr = null  item.KolvoSum = " + baseItem.KolvoSum.Caption + "  MeasureId = " +
                             mat.MeasureId);
                         }
                     }
@@ -442,27 +461,28 @@ namespace EcoDiffReport
                         mat.HasEmptyKolvo1 = true;
                     }
 
-                    Item item2;
-                    if (res2.TryGetValue(resItem.Key, out item2))
+                    Item ecoItem;
+                    //Находим базовый объект в списке объектов из извещения
+                    if (ecoComposition.TryGetValue(resItem.Key, out ecoItem))
                     {
-                        res2.Remove(resItem.Key);
+                        ecoComposition.Remove(resItem.Key);
                     }
                     else
                     {
                         var emptyItem = new Tuple<long, long>(0, resItem.Key.Item2);
-                        if (res2.TryGetValue(emptyItem, out item2))
+                        if (ecoComposition.TryGetValue(emptyItem, out ecoItem))
                         {
-                            res2.Remove(emptyItem);
+                            ecoComposition.Remove(emptyItem);
                         }
                     }
 
                     // Отдельно обработаем случай с заготовками 
-                    if (item2 == null
+                    if (ecoItem == null
                     && MetaDataHelper.IsObjectTypeChildOf(resItem.Value.ObjectType, zagot))
                     {
                         Tuple<long, long> zagotItem = null;
 
-                        foreach (var res2Item in res2)
+                        foreach (var res2Item in ecoComposition)
                         {
                             if (res2Item.Key.Item1 != resItem.Key.Item1 ||
                             res2Item.Value.MaterialId != resItem.Value.MaterialId ||
@@ -471,28 +491,27 @@ namespace EcoDiffReport
                                 continue;
                             }
 
-                            item2 = res2Item.Value;
+                            ecoItem = res2Item.Value;
                             zagotItem = res2Item.Key;
                         }
 
                         if (zagotItem != null)
                         {
-                            res2.Remove(zagotItem);
+                            ecoComposition.Remove(zagotItem);
                         }
                     }
 
-
-                    if (item2 != null)
+                    if (ecoItem != null)
                     {
                         //mat.Kolvo2 = MeasureHelper.ConvertToMeasuredValue(item2.KolvoSum, mat.MeasureId).Value;
-                        if (item2.MaterialDMTO != null)
-                            mat.MaterialDMTO = item2.MaterialDMTO;
-                        mat.HasEmptyKolvo2 = item2.HasEmptyKolvo;
-                        AddToLog("item02 " + item2.ToString());
-                        if (item2.KolvoSum != null)
+                        if (ecoItem.MaterialDMTO != null)
+                            mat.MaterialDMTO = ecoItem.MaterialDMTO;
+                        mat.HasEmptyKolvo2 = ecoItem.HasEmptyKolvo;
+                        AddToLog("item02 " + ecoItem.ToString());
+                        if (ecoItem.KolvoSum != null)
                         {
                             AddToLog("item2.KolvoSum != null");
-                            mat.Kolvo2 = MeasureHelper.ConvertToMeasuredValue(item2.KolvoSum, mat.MeasureId).Value;
+                            mat.Kolvo2 = MeasureHelper.ConvertToMeasuredValue(ecoItem.KolvoSum, mat.MeasureId).Value;
                         }
                         else
                         {
@@ -505,7 +524,8 @@ namespace EcoDiffReport
                     AddToLog("mat1 " + mat.ToString());
                 }
 
-                foreach (var item in res2.Values) //Добавим те которых не было в первом наборе
+                //Добавим те которых не было в первом наборе
+                foreach (var item in ecoComposition.Values) 
                 {
                     Material mat = new Material();
                     if (item.MaterialDMTO != null)
@@ -514,10 +534,14 @@ namespace EcoDiffReport
                     mat.MaterialId = item.MaterialId;
                     mat.MaterialCode = item.MaterialCode;
                     mat.MaterialCaption = item.MaterialCaption;
-                    res.Add(mat);
+                    //Добавляем снова
+                    resultComposition.Add(mat);
+
                     mat.HasEmptyKolvo2 = item.HasEmptyKolvo;
                     if (item.KolvoSum != null)
                     {
+                        //Кажется, единственное, что будет отличаться и должно отличаться -- количество
+                        //Добавляем количество из версии по ии
                         mat.Kolvo2 = item.KolvoSum.Value;
                         mat.MeasureId = item.KolvoSum.MeasureID;
                         var descr = MeasureHelper.FindDescriptor(mat.MeasureId);
@@ -537,9 +561,8 @@ namespace EcoDiffReport
                     AddToLog("mat2 " + mat.ToString());
                 }
 
-
                 List<long> ids = new List<long>();
-                foreach (var item in res)
+                foreach (var item in resultComposition)
                 {
                     ids.Add(item.MaterialId);
                     if (string.IsNullOrEmpty(item.MaterialCode))
@@ -548,6 +571,7 @@ namespace EcoDiffReport
                     }
                 }
 
+                //Получаем объекты из resultComposition у которых MaterialId != 0 и добавляем к соответствующему Material значение кода АМТО
                 if (ids.Count > 0)
                 {
                     IDBObjectCollection col = session.GetObjectCollection(matbase);
@@ -584,7 +608,7 @@ namespace EcoDiffReport
                         long id = Convert.ToInt64(row["F_ID"]);
                         string name = Convert.ToString(row["cad00020-306c-11d8-b4e9-00304f19f545"]);
                         string code = Convert.ToString(row["120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/]);
-                        Material mat = res.Find(x => x.MaterialId == id);
+                        Material mat = resultComposition.Find(x => x.MaterialId == id);
                         if (mat != null)
                         {
                             mat.MaterialCode = code;
@@ -593,7 +617,8 @@ namespace EcoDiffReport
                         }
                     }
 
-                    foreach (var item in res)
+                    // там где код АМТО == ""
+                    foreach (var item in resultComposition)
                     {
                         if (item.MaterialCode == "")
                         {
@@ -602,8 +627,11 @@ namespace EcoDiffReport
                             if (obj != null)
                             {
                                 IMSObjectType type = MetaDataHelper.GetObjectType(obj.ObjectType);
+
                                 IDBAttribute attr =
-                                obj.GetAttributeByGuid(new Guid("cad00020-306c-11d8-b4e9-00304f19f545"), false);
+                                obj.GetAttributeByGuid(new Guid("cad00020-306c-11d8-b4e9-00304f19f545"/*Наименование*/), false);
+
+                                //записываем наименование и код АМТО ?
                                 if (attr != null)
                                     item.MaterialCaption = attr.AsString;
                                 attr = obj.GetAttributeByGuid(new Guid("120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/), false);
@@ -616,30 +644,24 @@ namespace EcoDiffReport
                     }
                 }
 
-
-
-                foreach (var item in res)
+                foreach (var item in resultComposition)
                 {
 
                     AddToLog("beforesort " + item.ToString());
                 }
 
-
                 AddToLog("res.Sort");
 
-                res.Sort(Compare);
+                resultComposition.Sort(Compare);
 
-                foreach (var item in res)
+                foreach (var item in resultComposition)
                 {
 
                     AddToLog("aftersort " + item.ToString());
                 }
 
-
-
-
                 List<Material> restemp = new List<Material>();
-                foreach (var item in res)
+                foreach (var item in resultComposition)
                 {
                     Material lastItem = null;
                     if (restemp.Count > 0)
@@ -664,8 +686,11 @@ namespace EcoDiffReport
                     }
                 }
 
-                res = restemp;
+                resultComposition = restemp;
 
+
+                #region Формирование отчета
+                
                 // Заполнение шапки
                 AddToLog("fill header");
                 DocumentTreeNode headerNode = document.Template.FindNode("Шапка");
@@ -686,14 +711,14 @@ namespace EcoDiffReport
 
                 DocumentTreeNode docrow = document.Template.FindNode("Строка");
                 DocumentTreeNode table = document.FindNode("Таблица");
-                foreach (var item in res)
+                foreach (var item in resultComposition)
                 {
 
                     AddToLog("beforecreatenode " + item.ToString());
                 }
 
                 int index = 0;
-                foreach (var item in res)
+                foreach (var item in resultComposition)
                 {
                     index++;
                     // for (int i = 0; i < 30; i++)
@@ -766,6 +791,7 @@ namespace EcoDiffReport
                 }
 
                 AddToLog("Завершили создание отчета ");
+                #endregion
             }
             //catch (Exception ex)
             //{
@@ -773,8 +799,6 @@ namespace EcoDiffReport
             //AddToLog(ex.StackTrace);
             //throw ex;
             //}
-
-            //Вставьте ваш код сценария здесь
             return true;
         }
 
@@ -828,7 +852,7 @@ namespace EcoDiffReport
         int sostMaterial;
 
         /// <summary>
-        /// 
+        /// Если не выполняются определенные условия (н-р, не покупное изд), materialid=0, и дальше объект пропускается
         /// </summary>
         /// <param name="row"></param>
         /// <param name="itemsDict">Словарь в который будут заноситься objectid и Item. Организует иерархическую связь между Item.</param>
@@ -877,7 +901,7 @@ namespace EcoDiffReport
             lnk.LinkId = Convert.ToInt64(row["F_PRJLINK_ID"]);
             lnk.RelationTypeId = Convert.ToInt32(row["F_RELATION_TYPE"]);
 
-            // если нашли родительский объект в словаре состава
+            // если нашли родительский объект в словаре состава, добавляем связи
             if (itemsDict.ContainsKey(parentId))
             {
                 Item parent = itemsDict[parentId];
@@ -1018,6 +1042,9 @@ namespace EcoDiffReport
             public string MaterialCaption;
             string materialCode;
             public string MaterialDMTO;
+            /// <summary>
+            /// Код АМТО
+            /// </summary>
             public string MaterialCode
             {
                 get
@@ -1032,7 +1059,13 @@ namespace EcoDiffReport
                         materialCode = value;
                 }
             }
+            /// <summary>
+            /// Количество из базовой версии
+            /// </summary>
             public double Kolvo1 = 0;
+            /// <summary>
+            /// Количество из версии по извещению
+            /// </summary>
             public double Kolvo2 = 0;
             public long MeasureId;
             string edIzm = "";
@@ -1077,6 +1110,8 @@ namespace EcoDiffReport
                 IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
                 IDictionary<long, MeasuredValue> itemsKolvo = Parent.GetKolvo(false, ref hasContextObject, ref hasemptyKolvoRelations);
 
+                //Количество инициализируется в методе GetItem
+                // если значение количества пустое, записываем количество у связи, затем возвращаем
                 if (Kolvo != null)
                 {
                     if (itemsKolvo == null || itemsKolvo.Count == 0)
@@ -1176,7 +1211,6 @@ namespace EcoDiffReport
         /// </summary>
         class Item
         {
-
             public override string ToString()
             {
                 string objType1 = MetaDataHelper.GetObjectTypeName(ObjectType);
@@ -1185,7 +1219,7 @@ namespace EcoDiffReport
                 " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; KolvoSum={5}; ObjectType = {6}",
                 MaterialId, MaterialCode, MaterialCaption, Id, Caption, KolvoSum, objType1);
             }
-
+            
             public Item Clone()
             {
                 Item clone = new Item();
@@ -1206,6 +1240,9 @@ namespace EcoDiffReport
             public bool isContextObject = false;
             public bool isPocup = false;
             public MeasuredValue KolvoSum;
+            /// <summary>
+            /// MaterialId == Id ?
+            /// </summary>
             public long MaterialId;
             public string MaterialCaption;
             public string MaterialCode;
@@ -1218,22 +1255,29 @@ namespace EcoDiffReport
             public int ObjectType;
 
             //   public MeasuredValue Kolvo;
+            /// <summary>
+            /// Связи с дочерними объектами
+            /// </summary>
             public List<Relation> ChildItems = new List<Relation>();
+            /// <summary>
+            /// Связи с родительскими объектами
+            /// </summary>
             public List<Relation> ParentItems = new List<Relation>();
             public bool HasEmptyKolvo = false;
 
             public IDictionary<long, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
             {
+                 
                 long phId;
                 MeasuredValue measuredValue = null;
                 IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
                 if (this.isContextObject) hasContextObject = true;
-                foreach (Relation item in ParentItems)
+                foreach (Relation relation in ParentItems)
                 {
                     bool hasContextObject1 = true;
                     if (checkContextObject)
                         hasContextObject1 = false;
-                    IDictionary<long, MeasuredValue> itemsKolvo = item.GetKolvo(ref hasContextObject1, ref hasemptyKolvoRelations);
+                    IDictionary<long, MeasuredValue> itemsKolvo = relation.GetKolvo(ref hasContextObject1, ref hasemptyKolvoRelations);
                     hasContextObject = hasContextObject | hasContextObject1;
                     if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;
                     if (itemsKolvo == null)
