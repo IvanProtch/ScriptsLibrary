@@ -19,6 +19,7 @@ using Intermech.Interfaces.Client;
 using Intermech.Navigator.Interfaces.QuickSearch;
 using Intermech.Interfaces.Contexts;
 using Intermech.Collections;
+using Intermech;
 
 namespace EcoDiffReport
 {
@@ -50,8 +51,6 @@ namespace EcoDiffReport
                     System.IO.File.Delete(file);
                 AddToLog("Запускаем скрипт v 2.3");
 
-                long org_BMZ = 3251710;
-                //throw new Exception("jhghjhv");
                 standart = MetaDataHelper.GetObjectTypeID("cad00252-306c-11d8-b4e9-00304f19f545"); //Стандартные
 
                 proch = MetaDataHelper.GetObjectTypeID("cad0038d-306c-11d8-b4e9-00304f19f545"); //Прочие
@@ -250,9 +249,11 @@ namespace EcoDiffReport
                     {
                         if (item.MaterialId != 0)
                         {
-                            Item mainClone = item.Clone();
                             bool hasContextObjects = false;
-                            var itemsKolvo = item.GetKolvo(true, ref hasContextObjects, ref mainClone.HasEmptyKolvo);
+                            var itemsKolvo = item.GetKolvo(true, ref hasContextObjects, ref item.HasEmptyKolvo);
+
+                            Item mainClone = item.Clone();
+
                             if (!hasContextObjects)
                                 continue;
                             if (itemsKolvo == null || itemsKolvo.Count == 0)
@@ -286,7 +287,7 @@ namespace EcoDiffReport
                                 kolvoItemClone.KolvoSum = itemKolvo.Value;
 
                                 Item cachedItem;
-                                var itemKey = new Tuple<long, long>(itemKolvo.Key, item.GetKey());
+                                var itemKey = new Tuple<long, long>(itemKolvo.Key.Item1, item.GetKey());
                                 if (ecoComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
@@ -355,9 +356,10 @@ namespace EcoDiffReport
                     {
                         if (item.MaterialId != 0)
                         {
-                            Item mainClone = item.Clone();
                             bool hasContextObjects = false;
-                            var itemsKolvo = item.GetKolvo(true, ref hasContextObjects, ref mainClone.HasEmptyKolvo);
+                            var itemsKolvo = item.GetKolvo(true, ref hasContextObjects, ref item.HasEmptyKolvo);
+                            Item mainClone = item.Clone();
+
                             if (!hasContextObjects)
                                 continue;
 
@@ -393,7 +395,7 @@ namespace EcoDiffReport
                                 kolvoItemClone.KolvoSum = itemKolvo.Value;
 
                                 Item cachedItem;
-                                var itemKey = new Tuple<long, long>(itemKolvo.Key, item.GetKey());
+                                var itemKey = new Tuple<long, long>(itemKolvo.Key.Item1, item.GetKey());
                                 if (baseComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
@@ -447,6 +449,12 @@ namespace EcoDiffReport
                         mat.Kolvo1 = baseItem.KolvoSum.Value;
                         mat.MeasureId = baseItem.KolvoSum.MeasureID;
                         var descr = MeasureHelper.FindDescriptor(mat.MeasureId);
+
+                        foreach (var kolvoinasm1 in baseItem.KolvoInAsm)
+                        {
+                            mat.EntersInAsm1[kolvoinasm1.Key.Item1.Caption] = kolvoinasm1.Value.Value;
+                        }
+
                         if (descr != null)
                             mat.EdIzm = descr.ShortName;
                         else
@@ -512,6 +520,11 @@ namespace EcoDiffReport
                         {
                             AddToLog("item2.KolvoSum != null");
                             mat.Kolvo2 = MeasureHelper.ConvertToMeasuredValue(ecoItem.KolvoSum, mat.MeasureId).Value;
+
+                            foreach (var kolvoinasm1 in ecoItem.KolvoInAsm)
+                            {
+                                mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = kolvoinasm1.Value.Value;
+                            }
                         }
                         else
                         {
@@ -545,6 +558,12 @@ namespace EcoDiffReport
                         mat.Kolvo2 = item.KolvoSum.Value;
                         mat.MeasureId = item.KolvoSum.MeasureID;
                         var descr = MeasureHelper.FindDescriptor(mat.MeasureId);
+
+                        foreach (var kolvoinasm1 in item.KolvoInAsm)
+                        {
+                            mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = kolvoinasm1.Value.Value;
+                        }
+
                         if (descr != null)
                             mat.EdIzm = descr.ShortName;
                         else
@@ -720,11 +739,13 @@ namespace EcoDiffReport
                 int index = 0;
                 foreach (var item in resultComposition)
                 {
-                    index++;
+                    
                     // for (int i = 0; i < 30; i++)
                     {
+
                         if (item.Kolvo1 != item.Kolvo2 || item.HasEmptyKolvo1 != item.HasEmptyKolvo2)
                         {
+                            index++;
                             AddToLog("createnode " + item.ToString());
                             DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
                             table.AddChildNode(node, false, false);
@@ -941,11 +962,11 @@ namespace EcoDiffReport
 
             item.isPocup = isPocup;
 
-            if (isDopZamen)//Допзамены и их состав не считаем
-            {
-                AddToLog("isDopZamen " + lnk.ToString());
-                return null;
-            }
+            //if (isDopZamen)//Допзамены и их состав не считаем
+            //{
+            //    AddToLog("isDopZamen " + lnk.ToString());
+            //    return null;
+            //}
 
             itemsDict[id] = item;
 
@@ -1086,6 +1107,12 @@ namespace EcoDiffReport
             public bool HasEmptyKolvo1 = false;
             public bool HasEmptyKolvo2 = false;
 
+            /// <summary>
+            /// Вхождения СЕ (название, кол-во)
+            /// </summary>
+            public Dictionary<string, double> EntersInAsm1 = new Dictionary<string, double>();
+            public Dictionary<string, double> EntersInAsm2 = new Dictionary<string, double>();
+
             public override string ToString()
             {
                 return string.Format("MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; Kolvo1={3}; Kolvo2={4};",
@@ -1105,18 +1132,18 @@ namespace EcoDiffReport
             public MeasuredValue Kolvo;
             public bool HasEmptyKolvo = false;
 
-            public IDictionary<long, MeasuredValue> GetKolvo(ref bool hasContextObject, ref bool hasemptyKolvoRelations)
+            public IDictionary<Tuple<long, Relation>, MeasuredValue> GetKolvo(ref bool hasContextObject, ref bool hasemptyKolvoRelations)
             {
-                IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
-                IDictionary<long, MeasuredValue> itemsKolvo = Parent.GetKolvo(false, ref hasContextObject, ref hasemptyKolvoRelations);
-
+                IDictionary<Tuple<long, Relation>, MeasuredValue> result = new Dictionary<Tuple<long, Relation>, MeasuredValue>();
+                IDictionary<Tuple<long, Relation>, MeasuredValue> itemsKolvo = Parent.GetKolvo(false, ref hasContextObject, ref hasemptyKolvoRelations);
                 //Количество инициализируется в методе GetItem
                 // если значение количества пустое, записываем количество у связи, затем возвращаем
                 if (Kolvo != null)
                 {
                     if (itemsKolvo == null || itemsKolvo.Count == 0)
                     {
-                        result[MeasureHelper.FindDescriptor(Kolvo).PhysicalQuantityID] = Kolvo.Clone() as MeasuredValue;
+                        result[new Tuple<long, Relation>(MeasureHelper.FindDescriptor(Kolvo).PhysicalQuantityID,
+                            (Parent.ObjectType == MetaDataHelper.GetObjectTypeID(SystemGUIDs.objtypeAssemblyUnit)) ? this : null)] = Kolvo.Clone() as MeasuredValue;
                     }
                     else
                     {
@@ -1125,7 +1152,8 @@ namespace EcoDiffReport
                             foreach (var itemKolvo in itemsKolvo)
                             {
                                 itemKolvo.Value.Multiply(Kolvo);
-                                result[MeasureHelper.FindDescriptor(itemKolvo.Value).PhysicalQuantityID] = itemKolvo.Value;
+                                result[new Tuple<long, Relation>(MeasureHelper.FindDescriptor(Kolvo).PhysicalQuantityID,
+                                    (Parent.ObjectType == MetaDataHelper.GetObjectTypeID(SystemGUIDs.objtypeAssemblyUnit)) ? this : itemKolvo.Key.Item2)] = itemKolvo.Value;
                             }
                         }
                         catch (Exception ex)
@@ -1232,6 +1260,7 @@ namespace EcoDiffReport
                 clone.Caption = Caption;
                 clone.ObjectGuid = ObjectGuid;
                 clone.ObjectType = ObjectType;
+                clone.KolvoInAsm = KolvoInAsm;
                 //     clone.Kolvo = Kolvo;
                 return clone;
             }
@@ -1265,19 +1294,61 @@ namespace EcoDiffReport
             public List<Relation> ParentItems = new List<Relation>();
             public bool HasEmptyKolvo = false;
 
-            public IDictionary<long, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
+            /// <summary>
+            /// Количество вхождений item в СЕ(в кортеже с количеством)
+            /// </summary>
+            /// <returns></returns>
+            public Dictionary<Tuple<Item, MeasuredValue>, MeasuredValue> KolvoInAsm = new Dictionary<Tuple<Item, MeasuredValue>, MeasuredValue>();
+
+            ///// <summary>
+            ///// Последние входимости в СЕ текущего объекта
+            ///// </summary>
+            //public List<Item> LastAsmsEntersIn
+            //{
+            //    get
+            //    {
+            //        if(_lastAsmsEntersIn.Count == 0)
+            //        {
+            //            foreach (var rel in ParentItems)
+            //            {
+            //                if (rel.Parent.ParentItems.Count == 0)
+            //                    _lastAsmsEntersIn.Add(rel.Child);
+            //                else _lastAsmsEntersIn.AddRange(rel.Parent.LastAsmsEntersIn);
+            //            }
+            //        }
+            //        return _lastAsmsEntersIn;
+            //    }
+            //}
+
+            //public List<Item> FirstAsmsEntersIn
+            //{
+            //    get
+            //    {
+            //        if (_firstAsmsEntersIn.Count == 0)
+            //        {
+            //            foreach (var rel in ParentItems)
+            //            {
+            //                if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID)
+            //                    _firstAsmsEntersIn.Add(rel.Parent);
+            //                else _firstAsmsEntersIn.AddRange(rel.Parent.FirstAsmsEntersIn);
+            //            }
+            //        }
+            //        return _firstAsmsEntersIn;
+            //    }
+            //}
+
+            public IDictionary<Tuple<long, Relation>, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
             {
-                 
-                long phId;
                 MeasuredValue measuredValue = null;
-                IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
+                IDictionary<Tuple<long, Relation>, MeasuredValue> result = new Dictionary<Tuple<long, Relation>, MeasuredValue>();
                 if (this.isContextObject) hasContextObject = true;
                 foreach (Relation relation in ParentItems)
                 {
                     bool hasContextObject1 = true;
                     if (checkContextObject)
                         hasContextObject1 = false;
-                    IDictionary<long, MeasuredValue> itemsKolvo = relation.GetKolvo(ref hasContextObject1, ref hasemptyKolvoRelations);
+                    IDictionary<Tuple<long, Relation>, MeasuredValue> itemsKolvo = relation.GetKolvo(ref hasContextObject1, ref hasemptyKolvoRelations);
+
                     hasContextObject = hasContextObject | hasContextObject1;
                     if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;
                     if (itemsKolvo == null)
@@ -1285,8 +1356,12 @@ namespace EcoDiffReport
                         continue;
                     }
 
+                    
+
                     foreach (var itemKolvo in itemsKolvo)
                     {
+                        this.KolvoInAsm[new Tuple<Item, MeasuredValue>(itemKolvo.Key.Item2.Parent, itemKolvo.Key.Item2.Kolvo)] = itemKolvo.Value;
+
                         if (!result.TryGetValue(itemKolvo.Key, out measuredValue))
                         {
                             result[itemKolvo.Key] = itemKolvo.Value.Clone() as MeasuredValue;
