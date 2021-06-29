@@ -28,6 +28,7 @@ namespace EcoDiffReport
 
     public class Script
     {
+        
         public ICSharpScriptContext ScriptContext { get; private set; }
         public ScriptResult Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
         {
@@ -43,6 +44,7 @@ namespace EcoDiffReport
         {
             //try
             {
+                bool compliteReport = true;
                 document.Designation = "Сравнение составов";
                 if (System.Diagnostics.Debugger.IsAttached)
                     System.Diagnostics.Debugger.Break();
@@ -452,7 +454,7 @@ namespace EcoDiffReport
 
                         foreach (var kolvoinasm1 in baseItem.KolvoInAsm)
                         {
-                            mat.EntersInAsm1[kolvoinasm1.Key.Item1.Caption] = kolvoinasm1.Value.Value;
+                            mat.EntersInAsm1[kolvoinasm1.Key.Item1.Caption] = new Tuple<double, double>(kolvoinasm1.Value.Value, kolvoinasm1.Key.Item2.Value);
                         }
 
                         if (descr != null)
@@ -523,7 +525,7 @@ namespace EcoDiffReport
 
                             foreach (var kolvoinasm1 in ecoItem.KolvoInAsm)
                             {
-                                mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = kolvoinasm1.Value.Value;
+                                mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<double, double>(kolvoinasm1.Value.Value, kolvoinasm1.Key.Item2.Value);
                             }
                         }
                         else
@@ -561,7 +563,7 @@ namespace EcoDiffReport
 
                         foreach (var kolvoinasm1 in item.KolvoInAsm)
                         {
-                            mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = kolvoinasm1.Value.Value;
+                            mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<double, double>(kolvoinasm1.Value.Value, kolvoinasm1.Key.Item2.Value);
                         }
 
                         if (descr != null)
@@ -730,6 +732,9 @@ namespace EcoDiffReport
 
                 DocumentTreeNode docrow = document.Template.FindNode("Строка");
                 DocumentTreeNode table = document.FindNode("Таблица");
+                DocumentTreeNode doccol2 = document.Template.FindNode("Столбец2");
+                DocumentTreeNode docrow2 = document.Template.FindNode("Строка2");
+
                 foreach (var item in resultComposition)
                 {
 
@@ -737,6 +742,7 @@ namespace EcoDiffReport
                 }
 
                 int index = 0;
+                int i = 0;
                 foreach (var item in resultComposition)
                 {
                     
@@ -746,26 +752,123 @@ namespace EcoDiffReport
                         if (item.Kolvo1 != item.Kolvo2 || item.HasEmptyKolvo1 != item.HasEmptyKolvo2)
                         {
                             index++;
+                            i++;
                             AddToLog("createnode " + item.ToString());
                             DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
-                            table.AddChildNode(node, false, false);
+                            if (compliteReport)
+                            {
+                                #region Запись "было"
+                                table.AddChildNode(node, false, false);
 
-                            Write(node, "Индекс", index.ToString());
-                            Write(node, "ДМТО", item.MaterialDMTO);
+                                Write(node, "Индекс", index.ToString());
+                                Write(node, "Код", item.MaterialCode);
+                                Write(node, "Материал", item.MaterialCaption);
 
-                            Write(node, "Код", item.MaterialCode);
-                            Write(node, "Материал", item.MaterialCaption);
-                            if (item.Kolvo1 != 0 || !item.HasEmptyKolvo1)
-                                Write(node, "Было", Convert.ToString(Math.Round(item.Kolvo1, 4)));
+                                if (item.Kolvo1 != 0 || !item.HasEmptyKolvo1)
+                                {
+                                    Write(node, "Всего", item.Kolvo1.ToString());
+                                    if (index == 1)
+                                    {
+                                        //DocumentTreeNode entrow = node.FindNode("Куда входит строка");
+                                        DocumentTreeNode row2 = node.FindNode("Строка2");
+                                        WriteFirstAfterParent(row2, "Куда входит", item.EntersInAsm1.First().Key);
+                                        WriteFirstAfterParent(row2, "Количество вхождений", Math.Round(item.EntersInAsm1.First().Value.Item1, 3).ToString());
+                                        WriteFirstAfterParent(row2, "Количество сборок", Math.Round(item.EntersInAsm1.First().Value.Item2, 3).ToString());
+
+                                        for (int j = 1; j < item.EntersInAsm1.Count; j++)
+                                        {
+                                            DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
+                                            row2.AddChildNode(node2, false, false);
+                                            WriteFirstAfterParent(node2, "Куда входит", item.EntersInAsm1.Keys.ToList()[j]);
+                                            WriteFirstAfterParent(node2, "Количество вхождений", Math.Round(item.EntersInAsm1.Values.ToList()[j].Item1, 3).ToString());
+                                            WriteFirstAfterParent(node2, "Количество сборок", Math.Round(item.EntersInAsm1.Values.ToList()[j].Item2, 3).ToString());
+                                        }
+                                    }
+
+                                    if (index > 1)
+                                    {
+                                        //DocumentTreeNode entrow = node.FindNode(string.Format("Куда входит строка #{0}", index));
+                                        //DocumentTreeNode entcol = node.FindNode(string.Format("Куда входит #{0}", index));
+                                        DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", i));
+
+                                        WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm1.First().Key);
+                                        WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm1.First().Value.Item1, 3).ToString());
+                                        WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm1.First().Value.Item2, 3).ToString());
+
+                                        for (int j = 1; j < item.EntersInAsm1.Count; j++)
+                                        {
+                                            
+                                            DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
+                                            DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", i));
+
+                                            i++;
+                                            col2.AddChildNode(node2, false, false);
+                                            WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", i), item.EntersInAsm1.Keys.ToList()[j]);
+                                            WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm1.Values.ToList()[j].Item1, 3).ToString());
+                                            WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm1.Values.ToList()[j].Item2, 3).ToString());
+                                            
+                                        }
+
+                                    }
+                                }
+                                #endregion
+
+
+                                #region Запись "стало"
+
+                                i++;
+                                node = docrow.CloneFromTemplate(true, true);
+
+                                table.AddChildNode(node, false, false);
+
+                                if (item.Kolvo2 != 0 || !item.HasEmptyKolvo2)
+                                {
+                                    Write(node, "Всего", item.Kolvo2.ToString());
+
+                                    DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", i));
+                                    DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", i));
+
+                                    WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm2.First().Key);
+                                    WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm2.First().Value.Item1, 3).ToString());
+                                    WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm2.First().Value.Item2, 3).ToString());
+
+                                    for (int j = 1; j < item.EntersInAsm2.Count; j++)
+                                    {
+                                        DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
+                                        col2.AddChildNode(node2, false, false);
+                                        i++;
+                                        WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", i), item.EntersInAsm2.Keys.ToList()[j]);
+                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm2.Values.ToList()[j].Item1, 3).ToString());
+                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm2.Values.ToList()[j].Item2, 3).ToString());
+                                        
+                                    }
+                                }
+                                #endregion
+
+
+                            }
                             else
-                                Write(node, "Было", "-");
-                            if (item.Kolvo2 != 0 || !item.HasEmptyKolvo2)
-                                Write(node, "Будет", Convert.ToString(Math.Round(item.Kolvo2, 4)));
-                            else
-                                Write(node, "Будет", "-");
-                            var diff = Math.Round(item.Kolvo2 - item.Kolvo1, 4);
-                            Write(node, "Разница", Convert.ToString(diff)/*Convert.ToString(item.Kolvo2 - item.Kolvo1)*/);
-                            Write(node, "ЕдИзм", item.EdIzm);
+                            {
+
+                                table.AddChildNode(node, false, false);
+
+                                Write(node, "Индекс", index.ToString());
+                                Write(node, "ДМТО", item.MaterialDMTO);
+
+                                Write(node, "Код", item.MaterialCode);
+                                Write(node, "Материал", item.MaterialCaption);
+                                if (item.Kolvo1 != 0 || !item.HasEmptyKolvo1)
+                                    Write(node, "Было", Convert.ToString(Math.Round(item.Kolvo1, 4)));
+                                else
+                                    Write(node, "Было", "-");
+                                if (item.Kolvo2 != 0 || !item.HasEmptyKolvo2)
+                                    Write(node, "Будет", Convert.ToString(Math.Round(item.Kolvo2, 4)));
+                                else
+                                    Write(node, "Будет", "-");
+                                var diff = Math.Round(item.Kolvo2 - item.Kolvo1, 4);
+                                Write(node, "Разница", Convert.ToString(diff)/*Convert.ToString(item.Kolvo2 - item.Kolvo1)*/);
+                                Write(node, "ЕдИзм", item.EdIzm);
+                            }
 
                             if (item.HasEmptyKolvo1 || item.HasEmptyKolvo2)
                             {
@@ -857,9 +960,23 @@ namespace EcoDiffReport
         //        AddToLog("view == null");
         //}
 
+        private DocumentTreeNode AddNode(DocumentTreeNode childNode, string value)
+        {
+            DocumentTreeNode node = childNode.GetDocTreeRoot().Template.FindNode(value).CloneFromTemplate(true, true);
+            childNode.AddChildNode(node, false, false);
+            return node;
+        }
+
         private void Write(DocumentTreeNode parent, string tplid, string text)
         {
             TextData td = parent.FindFirstNodeFromTemplate_Recursive(tplid) as TextData;
+            if (td != null)
+                td.AssignText(text, false, false, false);
+        }
+
+        private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text)
+        {
+            TextData td = parent.FindNode(tplid) as TextData;
             if (td != null)
                 td.AssignText(text, false, false, false);
         }
@@ -1108,10 +1225,10 @@ namespace EcoDiffReport
             public bool HasEmptyKolvo2 = false;
 
             /// <summary>
-            /// Вхождения СЕ (название, кол-во)
+            /// Вхождения СЕ (название, кол-во, кол-во се)
             /// </summary>
-            public Dictionary<string, double> EntersInAsm1 = new Dictionary<string, double>();
-            public Dictionary<string, double> EntersInAsm2 = new Dictionary<string, double>();
+            public Dictionary<string, Tuple<double, double>> EntersInAsm1 = new Dictionary<string, Tuple<double, double>>();
+            public Dictionary<string, Tuple<double, double>> EntersInAsm2 = new Dictionary<string, Tuple<double, double>>();
 
             public override string ToString()
             {
@@ -1357,7 +1474,6 @@ namespace EcoDiffReport
                     }
 
                     
-
                     foreach (var itemKolvo in itemsKolvo)
                     {
                         this.KolvoInAsm[new Tuple<Item, MeasuredValue>(itemKolvo.Key.Item2.Parent, itemKolvo.Key.Item2.Kolvo)] = itemKolvo.Value;
