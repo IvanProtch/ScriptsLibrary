@@ -454,7 +454,7 @@ namespace EcoDiffReport
 
                         foreach (var kolvoinasm1 in baseItem.KolvoInAsm)
                         {
-                            mat.EntersInAsm1[kolvoinasm1.Key.Item1.Caption] = new Tuple<double, double>(kolvoinasm1.Value.Value, kolvoinasm1.Key.Item2.Value);
+                            mat.EntersInAsm1[kolvoinasm1.Key.Item1.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, kolvoinasm1.Key.Item2);
                         }
 
                         if (descr != null)
@@ -525,7 +525,7 @@ namespace EcoDiffReport
 
                             foreach (var kolvoinasm1 in ecoItem.KolvoInAsm)
                             {
-                                mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<double, double>(kolvoinasm1.Value.Value, kolvoinasm1.Key.Item2.Value);
+                                mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, kolvoinasm1.Key.Item2);
                             }
                         }
                         else
@@ -563,7 +563,7 @@ namespace EcoDiffReport
 
                         foreach (var kolvoinasm1 in item.KolvoInAsm)
                         {
-                            mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<double, double>(kolvoinasm1.Value.Value, kolvoinasm1.Key.Item2.Value);
+                            mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, kolvoinasm1.Key.Item2);
                         }
 
                         if (descr != null)
@@ -772,16 +772,16 @@ namespace EcoDiffReport
                                         //DocumentTreeNode entrow = node.FindNode("Куда входит строка");
                                         DocumentTreeNode row2 = node.FindNode("Строка2");
                                         WriteFirstAfterParent(row2, "Куда входит", item.EntersInAsm1.First().Key);
-                                        WriteFirstAfterParent(row2, "Количество вхождений", Math.Round(item.EntersInAsm1.First().Value.Item1, 3).ToString());
-                                        WriteFirstAfterParent(row2, "Количество сборок", Math.Round(item.EntersInAsm1.First().Value.Item2, 3).ToString());
+                                        WriteFirstAfterParent(row2, "Количество вхождений", item.EntersInAsm1.First().Value.Item1.Caption);
+                                        WriteFirstAfterParent(row2, "Количество сборок", item.EntersInAsm1.First().Value.Item2.Caption);
 
                                         for (int j = 1; j < item.EntersInAsm1.Count; j++)
                                         {
                                             DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
                                             row2.AddChildNode(node2, false, false);
                                             WriteFirstAfterParent(node2, "Куда входит", item.EntersInAsm1.Keys.ToList()[j]);
-                                            WriteFirstAfterParent(node2, "Количество вхождений", Math.Round(item.EntersInAsm1.Values.ToList()[j].Item1, 3).ToString());
-                                            WriteFirstAfterParent(node2, "Количество сборок", Math.Round(item.EntersInAsm1.Values.ToList()[j].Item2, 3).ToString());
+                                            WriteFirstAfterParent(node2, "Количество вхождений", item.EntersInAsm1.Values.ToList()[j].Item1.Caption);
+                                            WriteFirstAfterParent(node2, "Количество сборок", item.EntersInAsm1.Values.ToList()[j].Item2.Caption);
                                         }
                                     }
 
@@ -792,8 +792,8 @@ namespace EcoDiffReport
                                         DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", i));
 
                                         WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm1.First().Key);
-                                        WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm1.First().Value.Item1, 3).ToString());
-                                        WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm1.First().Value.Item2, 3).ToString());
+                                        WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm1.First().Value.Item1.Caption);
+                                        WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), item.EntersInAsm1.First().Value.Item2.Caption);
 
                                         for (int j = 1; j < item.EntersInAsm1.Count; j++)
                                         {
@@ -804,8 +804,8 @@ namespace EcoDiffReport
                                             i++;
                                             col2.AddChildNode(node2, false, false);
                                             WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", i), item.EntersInAsm1.Keys.ToList()[j]);
-                                            WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm1.Values.ToList()[j].Item1, 3).ToString());
-                                            WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm1.Values.ToList()[j].Item2, 3).ToString());
+                                            WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm1.Values.ToList()[j].Item1.Caption);
+                                            WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", i), item.EntersInAsm1.Values.ToList()[j].Item2.Caption);
                                             
                                         }
 
@@ -829,8 +829,8 @@ namespace EcoDiffReport
                                     DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", i));
 
                                     WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm2.First().Key);
-                                    WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm2.First().Value.Item1, 3).ToString());
-                                    WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm2.First().Value.Item2, 3).ToString());
+                                    WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm2.First().Value.Item1.Caption);
+                                    WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), item.EntersInAsm2.First().Value.Item2.Caption);
 
                                     for (int j = 1; j < item.EntersInAsm2.Count; j++)
                                     {
@@ -838,8 +838,8 @@ namespace EcoDiffReport
                                         col2.AddChildNode(node2, false, false);
                                         i++;
                                         WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", i), item.EntersInAsm2.Keys.ToList()[j]);
-                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", i), Math.Round(item.EntersInAsm2.Values.ToList()[j].Item1, 3).ToString());
-                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", i), Math.Round(item.EntersInAsm2.Values.ToList()[j].Item2, 3).ToString());
+                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm2.Values.ToList()[j].Item1.Caption);
+                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", i), item.EntersInAsm2.Values.ToList()[j].Item2.Caption);
                                         
                                     }
                                 }
@@ -1227,8 +1227,8 @@ namespace EcoDiffReport
             /// <summary>
             /// Вхождения СЕ (название, кол-во, кол-во се)
             /// </summary>
-            public Dictionary<string, Tuple<double, double>> EntersInAsm1 = new Dictionary<string, Tuple<double, double>>();
-            public Dictionary<string, Tuple<double, double>> EntersInAsm2 = new Dictionary<string, Tuple<double, double>>();
+            public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> EntersInAsm1 = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
+            public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> EntersInAsm2 = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
 
             public override string ToString()
             {
@@ -1417,43 +1417,6 @@ namespace EcoDiffReport
             /// <returns></returns>
             public Dictionary<Tuple<Item, MeasuredValue>, MeasuredValue> KolvoInAsm = new Dictionary<Tuple<Item, MeasuredValue>, MeasuredValue>();
 
-            ///// <summary>
-            ///// Последние входимости в СЕ текущего объекта
-            ///// </summary>
-            //public List<Item> LastAsmsEntersIn
-            //{
-            //    get
-            //    {
-            //        if(_lastAsmsEntersIn.Count == 0)
-            //        {
-            //            foreach (var rel in ParentItems)
-            //            {
-            //                if (rel.Parent.ParentItems.Count == 0)
-            //                    _lastAsmsEntersIn.Add(rel.Child);
-            //                else _lastAsmsEntersIn.AddRange(rel.Parent.LastAsmsEntersIn);
-            //            }
-            //        }
-            //        return _lastAsmsEntersIn;
-            //    }
-            //}
-
-            //public List<Item> FirstAsmsEntersIn
-            //{
-            //    get
-            //    {
-            //        if (_firstAsmsEntersIn.Count == 0)
-            //        {
-            //            foreach (var rel in ParentItems)
-            //            {
-            //                if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID)
-            //                    _firstAsmsEntersIn.Add(rel.Parent);
-            //                else _firstAsmsEntersIn.AddRange(rel.Parent.FirstAsmsEntersIn);
-            //            }
-            //        }
-            //        return _firstAsmsEntersIn;
-            //    }
-            //}
-
             public IDictionary<Tuple<long, Relation>, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
             {
                 MeasuredValue measuredValue = null;
@@ -1476,7 +1439,10 @@ namespace EcoDiffReport
                     
                     foreach (var itemKolvo in itemsKolvo)
                     {
-                        this.KolvoInAsm[new Tuple<Item, MeasuredValue>(itemKolvo.Key.Item2.Parent, itemKolvo.Key.Item2.Kolvo)] = itemKolvo.Value;
+                        var lastAsmRel = itemKolvo.Key.Item2.Parent.ParentItems.FirstOrDefault();
+                        var lastAsmKolvo = lastAsmRel != null ? lastAsmRel.Kolvo : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
+
+                        this.KolvoInAsm[new Tuple<Item, MeasuredValue>(itemKolvo.Key.Item2.Parent, lastAsmKolvo)] = itemKolvo.Value;
 
                         if (!result.TryGetValue(itemKolvo.Key, out measuredValue))
                         {
