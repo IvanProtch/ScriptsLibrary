@@ -289,7 +289,7 @@ namespace EcoDiffReport
                                 kolvoItemClone.KolvoSum = itemKolvo.Value;
 
                                 Item cachedItem;
-                                var itemKey = new Tuple<long, long>(itemKolvo.Key.Item1, item.GetKey());
+                                var itemKey = new Tuple<long, long>(itemKolvo.Key, item.GetKey());
                                 if (ecoComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
@@ -397,7 +397,7 @@ namespace EcoDiffReport
                                 kolvoItemClone.KolvoSum = itemKolvo.Value;
 
                                 Item cachedItem;
-                                var itemKey = new Tuple<long, long>(itemKolvo.Key.Item1, item.GetKey());
+                                var itemKey = new Tuple<long, long>(itemKolvo.Key, item.GetKey());
                                 if (baseComposition.TryGetValue(itemKey, out cachedItem))
                                 {
                                     if (cachedItem.KolvoSum != null)
@@ -454,7 +454,8 @@ namespace EcoDiffReport
 
                         foreach (var kolvoinasm1 in baseItem.KolvoInAsm)
                         {
-                            mat.EntersInAsm1[kolvoinasm1.Key.Item1.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, kolvoinasm1.Key.Item2);
+                            var asmKolvo = kolvoinasm1.Key.Parent.ParentItems.FirstOrDefault() != null ? kolvoinasm1.Key.Parent.ParentItems.First().Kolvo : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
+                            mat.EntersInAsm1[kolvoinasm1.Key.Parent.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, asmKolvo);
                         }
 
                         if (descr != null)
@@ -525,7 +526,8 @@ namespace EcoDiffReport
 
                             foreach (var kolvoinasm1 in ecoItem.KolvoInAsm)
                             {
-                                mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, kolvoinasm1.Key.Item2);
+                                var asmKolvo = kolvoinasm1.Key.Parent.ParentItems.FirstOrDefault() != null ? kolvoinasm1.Key.Parent.ParentItems.First().Kolvo : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
+                                mat.EntersInAsm2[kolvoinasm1.Key.Parent.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, asmKolvo);
                             }
                         }
                         else
@@ -563,7 +565,8 @@ namespace EcoDiffReport
 
                         foreach (var kolvoinasm1 in item.KolvoInAsm)
                         {
-                            mat.EntersInAsm2[kolvoinasm1.Key.Item1.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, kolvoinasm1.Key.Item2);
+                            var asmKolvo = kolvoinasm1.Key.Parent.ParentItems.FirstOrDefault() != null ? kolvoinasm1.Key.Parent.ParentItems.First().Kolvo : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
+                            mat.EntersInAsm2[kolvoinasm1.Key.Parent.Caption] = new Tuple<MeasuredValue, MeasuredValue>(kolvoinasm1.Value, asmKolvo);
                         }
 
                         if (descr != null)
@@ -740,10 +743,7 @@ namespace EcoDiffReport
                 int i = 0;
                 foreach (var item in resultComposition)
                 {
-                    
-                    // for (int i = 0; i < 30; i++)
                     {
-
                         if (item.Kolvo1 != item.Kolvo2 || item.HasEmptyKolvo1 != item.HasEmptyKolvo2)
                         {
 
@@ -770,7 +770,7 @@ namespace EcoDiffReport
                                 }
 
                                 #region Запись "было"
-                                if(item.EntersInAsm1.Count > 0)
+                                if(item.EntersInAsm1.Count > 0 || item.EntersInAsm2.Count > 0)
                                 {
                                     index++;
                                     i++;
@@ -782,16 +782,19 @@ namespace EcoDiffReport
 
                                     if (item.Kolvo1 != 0 || !item.HasEmptyKolvo1)
                                     {
-                                        Write(node, "Всего", item.Kolvo1.ToString());
+                                        Write(node, "Всего", Math.Round(item.Kolvo1, 4).ToString() + " " + item.EdIzm);
 
 
                                         if (index == 1)
                                         {
                                             //DocumentTreeNode entrow = node.FindNode("Куда входит строка");
                                             DocumentTreeNode row2 = node.FindNode("Строка2");
-                                            WriteFirstAfterParent(row2, "Куда входит", item.EntersInAsm1.First().Key);
-                                            WriteFirstAfterParent(row2, "Количество вхождений", item.EntersInAsm1.First().Value.Item1.Caption);
-                                            WriteFirstAfterParent(row2, "Количество сборок", item.EntersInAsm1.First().Value.Item2.Caption);
+                                            if (item.EntersInAsm1.Count != 0)
+                                            {
+                                                WriteFirstAfterParent(row2, "Куда входит", item.EntersInAsm1.First().Key);
+                                                WriteFirstAfterParent(row2, "Количество вхождений", item.EntersInAsm1.First().Value.Item1.Caption);
+                                                WriteFirstAfterParent(row2, "Количество сборок", item.EntersInAsm1.First().Value.Item2.Caption);
+                                            }
 
                                             for (int j = 1; j < item.EntersInAsm1.Count; j++)
                                             {
@@ -808,11 +811,12 @@ namespace EcoDiffReport
                                             //DocumentTreeNode entrow = node.FindNode(string.Format("Куда входит строка #{0}", index));
                                             //DocumentTreeNode entcol = node.FindNode(string.Format("Куда входит #{0}", index));
                                             DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", i));
-
-                                            WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm1.First().Key);
-                                            WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm1.First().Value.Item1.Caption);
-                                            WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), item.EntersInAsm1.First().Value.Item2.Caption);
-
+                                            if (item.EntersInAsm1.Count != 0)
+                                            {
+                                                WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm1.First().Key);
+                                                WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm1.First().Value.Item1.Caption);
+                                                WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), item.EntersInAsm1.First().Value.Item2.Caption);
+                                            }
 
                                             for (int j = 1; j < item.EntersInAsm1.Count; j++)
                                             {
@@ -836,7 +840,7 @@ namespace EcoDiffReport
 
                                 #region Запись "стало"
 
-                                if(item.EntersInAsm2.Count > 0)
+                                if(item.EntersInAsm1.Count > 0 || item.EntersInAsm2.Count > 0)
                                 {
                                     i++;
                                     node = docrow.CloneFromTemplate(true, true);
@@ -845,14 +849,16 @@ namespace EcoDiffReport
 
                                     if (item.Kolvo2 != 0 || !item.HasEmptyKolvo2)
                                     {
-                                        Write(node, "Всего", item.Kolvo2.ToString());
+                                        Write(node, "Всего", Math.Round(item.Kolvo1, 4).ToString() + " " + item.EdIzm);
 
                                         DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", i));
                                         DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", i));
-
-                                        WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm2.First().Key);
-                                        WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm2.First().Value.Item1.Caption);
-                                        WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), item.EntersInAsm2.First().Value.Item2.Caption);
+                                        if (item.EntersInAsm2.Count != 0)
+                                        {
+                                            WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", i), item.EntersInAsm2.First().Key);
+                                            WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", i), item.EntersInAsm2.First().Value.Item1.Caption);
+                                            WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", i), item.EntersInAsm2.First().Value.Item2.Caption);
+                                        }
 
                                         for (int j = 1; j < item.EntersInAsm2.Count; j++)
                                         {
@@ -935,7 +941,7 @@ namespace EcoDiffReport
                             }
                         }
                     }
-
+                        
                 }
 
                 AddToLog("Завершили создание отчета ");
@@ -1273,21 +1279,17 @@ namespace EcoDiffReport
             public MeasuredValue Kolvo;
             public bool HasEmptyKolvo = false;
 
-            public IDictionary<Tuple<long, Relation>, MeasuredValue> GetKolvo(ref bool hasContextObject, ref bool hasemptyKolvoRelations)
+            public IDictionary<long, MeasuredValue> GetKolvo(ref bool hasContextObject, ref bool hasemptyKolvoRelations)
             {
-                IDictionary<Tuple<long, Relation>, MeasuredValue> result = new Dictionary<Tuple<long, Relation>, MeasuredValue>();
-                IDictionary<Tuple<long, Relation>, MeasuredValue> itemsKolvo = Parent.GetKolvo(false, ref hasContextObject, ref hasemptyKolvoRelations);
+                IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
+                IDictionary<long, MeasuredValue> itemsKolvo = Parent.GetKolvo(false, ref hasContextObject, ref hasemptyKolvoRelations);
                 //Количество инициализируется в методе GetItem
                 // если значение количества пустое, записываем количество у связи, затем возвращаем
                 if (Kolvo != null)
                 {
                     if (itemsKolvo == null || itemsKolvo.Count == 0)
                     {
-                        foreach (var firstAsm in this.Parent.FirstAsmsEntersIn)
-                        {
-                            result[new Tuple<long, Relation>(MeasureHelper.FindDescriptor(Kolvo).PhysicalQuantityID, this
-                            /*(Parent.ObjectType == MetaDataHelper.GetObjectTypeID(SystemGUIDs.objtypeAssemblyUnit)) ? this : firstAsm*/)] = Kolvo.Clone() as MeasuredValue;
-                        }
+                        result[MeasureHelper.FindDescriptor(Kolvo).PhysicalQuantityID] = Kolvo.Clone() as MeasuredValue;
                     }
                     else
                     {
@@ -1296,8 +1298,7 @@ namespace EcoDiffReport
                             foreach (var itemKolvo in itemsKolvo)
                             {
                                 itemKolvo.Value.Multiply(Kolvo);
-                                result[new Tuple<long, Relation>(MeasureHelper.FindDescriptor(Kolvo).PhysicalQuantityID,
-                                    (Parent.ObjectType == MetaDataHelper.GetObjectTypeID(SystemGUIDs.objtypeAssemblyUnit)) ? this : itemKolvo.Key.Item2)] = itemKolvo.Value;
+                                result[MeasureHelper.FindDescriptor(Kolvo).PhysicalQuantityID] = itemKolvo.Value;
                             }
                         }
                         catch (Exception ex)
@@ -1404,7 +1405,10 @@ namespace EcoDiffReport
                 clone.Caption = Caption;
                 clone.ObjectGuid = ObjectGuid;
                 clone.ObjectType = ObjectType;
-                clone.KolvoInAsm = KolvoInAsm;
+                clone.ParentItems = ParentItems;
+                clone.ChildItems = ChildItems;
+                clone._kolvoInAsm = _kolvoInAsm;
+
                 //     clone.Kolvo = Kolvo;
                 return clone;
             }
@@ -1429,50 +1433,30 @@ namespace EcoDiffReport
 
 
             /// <summary>
-            /// Последние входимости в СЕ текущего объекта
-            /// </summary>
-            public List<Item> LastAsmsEntersIn
-            {
-                get
-                {
-                    if (_lastAsmsEntersIn.Count == 0)
-                    {
-                        foreach (var rel in ParentItems)
-                        {
-                            if (rel.Parent.ParentItems.Count == 0)
-                                _lastAsmsEntersIn.Add(rel.Child);
-                            else _lastAsmsEntersIn.AddRange(rel.Parent.LastAsmsEntersIn);
-                        }
-                    }
-                    return _lastAsmsEntersIn;
-                }
-            }
-
-            /// <summary>
             /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи
             /// </summary>
-            public Dictionary<Relation, MeasuredValue> FirstAsmsEntersIn
+            public Dictionary<Relation, MeasuredValue> KolvoInAsm
             {
                 get
                 {
-                    if (_firstAsmsEntersIn.Keys.Count == 0)
+                    if (_kolvoInAsm.Keys.Count == 0)
                     {
                         foreach (var rel in ParentItems)
                         {
                             if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID)
-                                _firstAsmsEntersIn.Add(rel, rel.Kolvo);
+                                _kolvoInAsm.Add(rel, rel.Kolvo);
                             else
                             {
-                                var nextAsms = rel.Parent.FirstAsmsEntersIn;
+                                var nextAsms = rel.Parent.KolvoInAsm;
                                 foreach (var na in nextAsms)
                                 {
-                                    _firstAsmsEntersIn[na.Key] = rel.Kolvo;
+                                    _kolvoInAsm[na.Key] = rel.Kolvo;
                                 }
                                 //_firstAsmsEntersIn.AddRange(rel.Parent.FirstAsmsEntersIn);
                             }
                         }
                     }
-                    return _firstAsmsEntersIn;
+                    return _kolvoInAsm;
                 }
             }
 
@@ -1491,21 +1475,20 @@ namespace EcoDiffReport
             /// Количество вхождений item в СЕ(в кортеже с количеством)
             /// </summary>
             /// <returns></returns>
-            public Dictionary<Tuple<Item, MeasuredValue>, MeasuredValue> KolvoInAsm = new Dictionary<Tuple<Item, MeasuredValue>, MeasuredValue>();
-            private List<Item> _lastAsmsEntersIn = new List<Item>();
-            private Dictionary<Relation, MeasuredValue> _firstAsmsEntersIn = new Dictionary<Relation, MeasuredValue>();
+            /// 
+            private Dictionary<Relation, MeasuredValue> _kolvoInAsm = new Dictionary<Relation, MeasuredValue>();
 
-            public IDictionary<Tuple<long, Relation>, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
+            public IDictionary<long, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
             {
                 MeasuredValue measuredValue = null;
-                IDictionary<Tuple<long, Relation>, MeasuredValue> result = new Dictionary<Tuple<long, Relation>, MeasuredValue>();
+                IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
                 if (this.isContextObject) hasContextObject = true;
                 foreach (Relation relation in ParentItems)
                 {
                     bool hasContextObject1 = true;
                     if (checkContextObject)
                         hasContextObject1 = false;
-                    IDictionary<Tuple<long, Relation>, MeasuredValue> itemsKolvo = relation.GetKolvo(ref hasContextObject1, ref hasemptyKolvoRelations);
+                    IDictionary<long, MeasuredValue> itemsKolvo = relation.GetKolvo(ref hasContextObject1, ref hasemptyKolvoRelations);
 
                     hasContextObject = hasContextObject | hasContextObject1;
                     if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;
@@ -1517,11 +1500,6 @@ namespace EcoDiffReport
                     
                     foreach (var itemKolvo in itemsKolvo)
                     {
-                        var asm = itemKolvo.Key.Item2 != null ? itemKolvo.Key.Item2.Parent : null;
-                        var lastAsmRel = itemKolvo.Key.Item2 != null ? itemKolvo.Key.Item2.Parent.ParentItems.FirstOrDefault() : null;
-                        var lastAsmKolvo = lastAsmRel != null ? lastAsmRel.Kolvo : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
-
-                        this.KolvoInAsm[new Tuple<Item, MeasuredValue>(asm, lastAsmKolvo)] = itemKolvo.Value;
 
                         if (!result.TryGetValue(itemKolvo.Key, out measuredValue))
                         {
