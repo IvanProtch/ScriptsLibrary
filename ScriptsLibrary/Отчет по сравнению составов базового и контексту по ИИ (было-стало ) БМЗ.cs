@@ -1,4 +1,4 @@
-﻿///Скрипт v.2.1 от 28.09.2020 Убраны все static для перехода на IPS 6
+﻿///Скрипт v.3.1 - Добавлены входимости материалов в ближайшие сборки
 
 using System;
 using System.Linq;
@@ -51,7 +51,7 @@ namespace EcoDiffReport
                 string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
                 if (System.IO.File.Exists(file))
                     System.IO.File.Delete(file);
-                AddToLog("Запускаем скрипт v 2.3");
+                AddToLog("Запускаем скрипт v 3.1");
 
                 standart = MetaDataHelper.GetObjectTypeID("cad00252-306c-11d8-b4e9-00304f19f545"); //Стандартные
 
@@ -124,6 +124,9 @@ namespace EcoDiffReport
                 List<int> rels = new List<int>();
                 rels.Add(MetaDataHelper.GetRelationTypeID("cad00023-306c-11d8-b4e9-00304f19f545" /*Состоит из*/));
                 rels.Add(MetaDataHelper.GetRelationTypeID("cad0019f-306c-11d8-b4e9-00304f19f545" /*Состоит из*/));
+
+                rels.Add(MetaDataHelper.GetRelationTypeID("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/));
+
                 rels.Add(MetaDataHelper.GetRelationTypeID(
                 "cad00584-306c-11d8-b4e9-00304f19f545" /*Состав экземпляров и партий изделий*/));
 
@@ -795,7 +798,7 @@ namespace EcoDiffReport
 
                                     if (item.Kolvo1 != 0 || !item.HasEmptyKolvo1)
                                     {
-                                        Write(node, "Всего", Math.Round(item.Kolvo1, 4).ToString() + " " + item.EdIzm);
+                                        Write(node, "Всего", Math.Round(item.Kolvo1, 3).ToString() + " " + item.EdIzm);
 
 
                                         if (N == 1)
@@ -864,7 +867,7 @@ namespace EcoDiffReport
 
                                     if (item.Kolvo2 != 0 || !item.HasEmptyKolvo2)
                                     {
-                                        Write(node, "Всего", Math.Round(item.Kolvo2, 4).ToString() + " " + item.EdIzm);
+                                        Write(node, "Всего", Math.Round(item.Kolvo2, 3).ToString() + " " + item.EdIzm);
 
                                         DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
                                         DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
@@ -903,14 +906,14 @@ namespace EcoDiffReport
                                 Write(node, "Код", item.MaterialCode);
                                 Write(node, "Материал", item.MaterialCaption);
                                 if (item.Kolvo1 != 0 || !item.HasEmptyKolvo1)
-                                    Write(node, "Было", Convert.ToString(Math.Round(item.Kolvo1, 4)));
+                                    Write(node, "Было", Convert.ToString(Math.Round(item.Kolvo1, 3)));
                                 else
                                     Write(node, "Было", "-");
                                 if (item.Kolvo2 != 0 || !item.HasEmptyKolvo2)
-                                    Write(node, "Будет", Convert.ToString(Math.Round(item.Kolvo2, 4)));
+                                    Write(node, "Будет", Convert.ToString(Math.Round(item.Kolvo2, 3)));
                                 else
                                     Write(node, "Будет", "-");
-                                var diff = Math.Round(item.Kolvo2 - item.Kolvo1, 4);
+                                var diff = Math.Round(item.Kolvo2 - item.Kolvo1, 3);
                                 Write(node, "Разница", Convert.ToString(diff)/*Convert.ToString(item.Kolvo2 - item.Kolvo1)*/);
                                 Write(node, "ЕдИзм", item.EdIzm);
                             }
@@ -1124,11 +1127,11 @@ namespace EcoDiffReport
 
             item.isPocup = isPocup;
 
-            //if (isDopZamen)//Допзамены и их состав не считаем
-            //{
-            //    AddToLog("isDopZamen " + lnk.ToString());
-            //    return null;
-            //}
+            if (isDopZamen)//Допзамены и их состав не считаем
+            {
+                AddToLog("isDopZamen " + lnk.ToString());
+                return null;
+            }
 
             itemsDict[id] = item;
 
@@ -1467,7 +1470,6 @@ namespace EcoDiffReport
                                 {
                                     _kolvoInAsm[na.Key] = rel.Kolvo;
                                 }
-                                //_firstAsmsEntersIn.AddRange(rel.Parent.FirstAsmsEntersIn);
                             }
                         }
                     }
@@ -1486,11 +1488,6 @@ namespace EcoDiffReport
             public List<Relation> ParentItems = new List<Relation>();
             public bool HasEmptyKolvo = false;
 
-            /// <summary>
-            /// Количество вхождений item в СЕ(в кортеже с количеством)
-            /// </summary>
-            /// <returns></returns>
-            /// 
             private Dictionary<Relation, MeasuredValue> _kolvoInAsm = new Dictionary<Relation, MeasuredValue>();
 
             public IDictionary<long, MeasuredValue> GetKolvo(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyKolvoRelations)
