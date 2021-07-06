@@ -122,7 +122,7 @@ public class Script
                     {
                         IDBObject signObj = UserSession.GetObject(sign);
 
-                        DateTime modifyDate = signObj.GetAttributeByGuid(new Guid("cad0013a-306c-11d8-b4e9-00304f19f545"
+                        DateTime modifyDate = zagObj.GetAttributeByGuid(new Guid("cad0013a-306c-11d8-b4e9-00304f19f545"
                             /*Дата модификации содержимого объекта*/)).AsDateTime;
 
                         DateTime signDate = signObj.GetAttributeByGuid(new Guid("cad014cb-306c-11d8-b4e9-00304f19f545"
