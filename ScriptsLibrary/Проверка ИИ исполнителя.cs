@@ -15,11 +15,16 @@ using Intermech.Kernel.Search;
 using System.Data;
 using Intermech;
 
-public class Script
+public class Script0
 {
     public ICSharpScriptContext ScriptContext { get; private set; }
 
     #region Константы
+
+    #region ID Организаций-источников
+    const long idBMZ = 3251710; // id объекта организации "БМЗ" 
+    const long idKSK = 63822858; // id объекта организации ОП "КСК-Брянск"
+    #endregion
 
     /// <summary>
     /// Технологический объект
@@ -56,6 +61,8 @@ public class Script
     private List<int> TPListAll;
     private List<int> IIListAll;
     private List<int> TechIITypes;
+
+
 
     #endregion Константы
 
@@ -136,12 +143,9 @@ public class Script
         .Select(element => (long)element[0]).ToList<long>();
     }
 
-    /// <summary>
-    /// Проверка атрибута "организация-источник БМЗ"
-    /// </summary>
-    private bool? FromBMZ(IUserSession UserSession, long elem)
+
+    private bool? FromOrg(IUserSession UserSession, long orgID, long elem)
     {
-        const long idBMZ = 3251710; // id ообъекта организации "БМЗ"
         IDBObject obj = UserSession.GetObject(elem);
         IDBAttribute orgIstAtr = obj.GetAttributeByName("Организация-источник");
         if (orgIstAtr.IsNull)
@@ -149,7 +153,7 @@ public class Script
             return null;
         }
         long org = (long)orgIstAtr.Value;
-        if (org == idBMZ)
+        if (org == orgID)
             return true;
         else
             return false;
@@ -275,7 +279,7 @@ public class Script
                     IDBObject II = UserSession.GetObject(techIIs[i]);
 
                     //Пропускаем дальнейшую проверку для чужих ИИ
-                    if (FromBMZ(UserSession, techIIs[i]) == false)
+                    if (FromOrg(UserSession, idBMZ, techIIs[i]) == false || FromOrg(UserSession, idKSK, techIIs[i]) == false)
                         continue;
 
                     //Проверяем редактируется ли само ИИ
@@ -287,9 +291,9 @@ public class Script
                         redactor.NameInMessages, II.NameInMessages, II.ObjectID);
                         isChecked = false;
                     }
-
+                    
                     //Проверка принадлежности организации БМЗ
-                    if (FromBMZ(UserSession, techIIs[i]) == null)
+                    if (FromOrg(UserSession, idBMZ, techIIs[i]) == null)
                     {
                         FinalMessage += string.Format("\r\n[{0}]|[{1}] значение атрибута 'организация-источник' пустое," +
                         " проверьте принадлежность ИИ БМЗ и укажите значение атрибута и актуализируйте.\r\n",
@@ -298,6 +302,14 @@ public class Script
                         continue;
                     }
 
+                    if (FromOrg(UserSession, idKSK, techIIs[i]) == null)
+                    {
+                        FinalMessage += string.Format("\r\n[{0}]|[{1}] значение атрибута 'организация-источник' пустое," +
+                        " проверьте принадлежность ИИ БМЗ и укажите значение атрибута и актуализируйте.\r\n",
+                        II.NameInMessages, II.ObjectID);
+                        isChecked = false;
+                        continue;
+                    }
                     //Состав ИИ
                     List<long> consistance = techIIsAllConsistance[i];
 
