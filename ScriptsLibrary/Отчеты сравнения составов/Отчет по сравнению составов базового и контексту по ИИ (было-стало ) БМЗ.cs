@@ -67,6 +67,8 @@ namespace EcoDiffReport
 
                 complects = MetaDataHelper.GetObjectTypeID("cad0025f-306c-11d8-b4e9-00304f19f545"); //Комплекты
 
+                complexPost = MetaDataHelper.GetObjectTypeID("c248b4f0-69c6-4521-866a-f9837afcb0b2" /*Комплекты поставки*/);
+
                 //Типы объектов на которые необходимо проверять заполнено ли количество
                 checkKolvoTypes.Add(standart);
                 checkKolvoTypes.Add(proch);
@@ -1036,6 +1038,7 @@ namespace EcoDiffReport
         int zagot;
         int matbase;
         int sostMaterial;
+        int complexPost;
 
         /// <summary>
         /// Если не выполняются определенные условия (н-р, не покупное изд), materialid=0, и дальше объект пропускается
@@ -1100,6 +1103,8 @@ namespace EcoDiffReport
                     AddToLog("ParentIsPocup " + parentId + "  " + lnk.ToString());
                     return null;
                 }
+                if (parent.ObjectType == complexPost)
+                    return null;
 
                 parent.ChildItems.Add(lnk);
                 lnk.Parent = parent;
