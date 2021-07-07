@@ -15,7 +15,7 @@ using Intermech.Kernel.Search;
 using System.Data;
 using Intermech;
 
-public class Script0
+public class Script
 {
     public ICSharpScriptContext ScriptContext { get; private set; }
 
@@ -177,12 +177,11 @@ public class Script0
                 /*Дата подписания*/)).AsDateTime;
 
             string signGraph = signObj.GetAttributeByGuid(new Guid("cad00141-306c-11d8-b4e9-00304f19f545")).Description;
-            string user = signObj.GetAttributeByGuid(new Guid("cad00143-306c-11d8-b4e9-00304f19f545")).Description;
 
             if (modifyDate > signDate && signGraph == signGraphValue)
             {
-                message += string.Format("\r\nДля {0} требуется обновить подпись пользователя {1} в графе {2}.\r\n",
-                    o.NameInMessages, user, signGraph);
+                message += string.Format("\r\nДля {0} требуется обновить подпись в графе {1}.\r\n",
+                    o.NameInMessages, signGraph);
             }
         }
         // Проверка наличия подписи в графе signGraph
@@ -242,34 +241,6 @@ public class Script0
 
                 List<List<long>> techIIsAllConsistance = new List<List<long>>();
 
-                foreach (long techII in techIIs)
-                {
-                    //Получаем состав техн ИИ и заносим в список составов
-                    List<long> consistance = LoadItemIds(UserSession, techII, new List<int> { relTypeChangingByII, relTypeTechConsist }, allObjectTypes, -1)
-                        .Distinct().ToList<long>();
-                    techIIsAllConsistance.Add(consistance);
-
-                    #region Проверка актуальности подписей у извещений
-                    string msg = string.Empty;
-                    IDBObject IIobj = UserSession.GetObject(techII);
-
-                    if (IIobj.ObjectType == TechIIType)
-                    {
-                        msg = ActualSignsCheck(UserSession, IIobj.ObjectID, "Составил (технология)");
-                        if (msg.Length > 0)
-                            FinalMessage += msg;
-                    }
-
-                    if (IIobj.ObjectType == TechSvIIType)
-                    {
-                        msg = ActualSignsCheck(UserSession, IIobj.ObjectID, "Составил (сварка)");
-                        if(msg.Length > 0)
-                            FinalMessage += msg;
-                    }
-
-                    #endregion
-                }
-
                 //Выполняем основные проверки ИИ
                 //Проходим по всем технологическим ИИ
                 for (int i = 0; i < techIIs.Count; i++)
@@ -278,8 +249,21 @@ public class Script0
                     bool isChecked = true;
                     IDBObject II = UserSession.GetObject(techIIs[i]);
 
+                    //Получаем состав техн ИИ и заносим в список составов
+                    List<long> c = LoadItemIds(UserSession, techIIs[i], new List<int> { relTypeChangingByII, relTypeTechConsist }, allObjectTypes, -1)
+                        .Distinct().ToList<long>();
+                    techIIsAllConsistance.Add(c);
+
+                    if (FromOrg(UserSession, idBMZ, techIIs[i]) == null)
+                    {
+                        FinalMessage += string.Format("\r\n[{0}]|[{1}] значение атрибута 'организация-источник' пустое," +
+                        " проверьте принадлежность ИИ БМЗ и укажите значение атрибута.\r\n",
+                        II.NameInMessages, II.ObjectID);
+                        continue;
+                    }
+
                     //Пропускаем дальнейшую проверку для чужих ИИ
-                    if (FromOrg(UserSession, idBMZ, techIIs[i]) == false || FromOrg(UserSession, idKSK, techIIs[i]) == false)
+                    if (!(FromOrg(UserSession, idBMZ, techIIs[i]) == true || FromOrg(UserSession, idKSK, techIIs[i]) == true))
                         continue;
 
                     //Проверяем редактируется ли само ИИ
@@ -290,26 +274,28 @@ public class Script0
                         FinalMessage += string.Format("\r\n[{0}] взял объект [{1}]|[{2}] на редактирование.\r\n",
                         redactor.NameInMessages, II.NameInMessages, II.ObjectID);
                         isChecked = false;
-                    }
-                    
-                    //Проверка принадлежности организации БМЗ
-                    if (FromOrg(UserSession, idBMZ, techIIs[i]) == null)
-                    {
-                        FinalMessage += string.Format("\r\n[{0}]|[{1}] значение атрибута 'организация-источник' пустое," +
-                        " проверьте принадлежность ИИ БМЗ и укажите значение атрибута и актуализируйте.\r\n",
-                        II.NameInMessages, II.ObjectID);
-                        isChecked = false;
                         continue;
                     }
 
-                    if (FromOrg(UserSession, idKSK, techIIs[i]) == null)
+                    #region Проверка актуальности подписей у извещений
+                    string msg = string.Empty;
+
+                    if (II.ObjectType == TechIIType)
                     {
-                        FinalMessage += string.Format("\r\n[{0}]|[{1}] значение атрибута 'организация-источник' пустое," +
-                        " проверьте принадлежность ИИ БМЗ и укажите значение атрибута и актуализируйте.\r\n",
-                        II.NameInMessages, II.ObjectID);
-                        isChecked = false;
-                        continue;
+                        msg = ActualSignsCheck(UserSession, II.ObjectID, "Составил (технология)");
+                        if (msg.Length > 0)
+                            FinalMessage += msg;
                     }
+
+                    if (II.ObjectType == TechSvIIType)
+                    {
+                        msg = ActualSignsCheck(UserSession, II.ObjectID, "Составил (сварка)");
+                        if (msg.Length > 0)
+                            FinalMessage += msg;
+                    }
+
+                    #endregion
+
                     //Состав ИИ
                     List<long> consistance = techIIsAllConsistance[i];
 
@@ -317,6 +303,16 @@ public class Script0
                     for (int ii_ind = 0; ii_ind < consistance.Count; ii_ind++)
                     {
                         IDBObject obj = UserSession.GetObject(consistance[ii_ind]);
+
+                        if (obj.CheckoutBy > 0)
+                        {
+                            IDBObject redactor = UserSession.GetObject(obj.CheckoutBy);
+
+                            FinalMessage += string.Format("\r\n[{0}] взял объект [{1}]|[{3}] из [{2}]|[{4}] на редактирование.\r\n",
+                            redactor.NameInMessages, obj.NameInMessages, II.NameInMessages, obj.ObjectID, II.ObjectID);
+                            isChecked = false;
+                            continue;
+                        }
 
                         IDBRelation relationII = UserSession.GetRelation(II.ObjectID, obj.ID);
 
@@ -330,19 +326,9 @@ public class Script0
                                 && Convert.ToInt32(customIDLC.Value) != 1058/*Шаг 'Согласование'*/)
                             {
                                 isChecked = false;
-                                FinalMessage += string.Format("Нельзя перевести объект {0} из {1} на шаг 'Согласование и утверждение'\n",
+                                FinalMessage += string.Format("\n\rНеправильно выбран шаг перевода для объекта {0} при актуальзиции ИИ {1}.\n\r",
                                     obj.NameInMessages, II.NameInMessages);
                             }
-                        }
-
-                        if (obj.CheckoutBy > 0)
-                        {
-                            IDBObject redactor = UserSession.GetObject(obj.CheckoutBy);
-
-                            FinalMessage += string.Format("\r\n[{0}] взял объект [{1}]|[{3}] из [{2}]|[{4}] на редактирование.\r\n",
-                            redactor.NameInMessages, obj.NameInMessages, II.NameInMessages, obj.ObjectID, II.ObjectID);
-
-                            isChecked = false;
                         }
 
                         #region Проверка подписей у объектов состава ИИ
@@ -363,7 +349,6 @@ public class Script0
                             MetaDataHelper.GetObjectTypeID("cad00187-306c-11d8-b4e9-00304f19f545" /*Техпроцесс единичный*/),
                             MetaDataHelper.GetObjectTypeID("cad00186-306c-11d8-b4e9-00304f19f545" /*Техпроцесс групповой*/)
                         };
-                        string msg = string.Empty;
                         if (II.ObjectType == TechIIType && techIIConsTypes.Contains(obj.ObjectType))
                         {
                             msg = ActualSignsCheck(UserSession, obj.ObjectID, "Разработал (технология)");
@@ -380,26 +365,21 @@ public class Script0
                         #endregion
                     }
 
-                    //Получаем список объектов не найденных в составе, но присутствующих в контексте ИИ
-                    List<long> nConsistedObjIds = NotConsistedInII_ObjIDs(UserSession, techIIs[i], techIIsAllConsistance[i]);
+                   //Получаем список объектов не найденных в составе, но присутствующих в контексте ИИ
+                   List<long> nConsistedObjIds = NotConsistedInII_ObjIDs(UserSession, techIIs[i], techIIsAllConsistance[i]);
                     foreach (long nConsistedObj in nConsistedObjIds)
                     {
                         IDBObject obj = UserSession.GetObject(nConsistedObj);
 
-                        FinalMessage += string.Format("\r\nОбъект [{0}]|[{2}] присутствует в контексте редактирования [{1}]|[{3}]," +
-                        " но не обнаружен в составе.\r\n",
-                        obj.NameInMessages, II.NameInMessages, obj.ObjectID, II.ObjectID);
-
                         if (obj.CheckoutBy > 0)
-                        {
-                            IDBObject redactor = UserSession.GetObject(obj.CheckoutBy);
+                            continue;
 
-                            FinalMessage += string.Format("[{0}] взял объект [{1}]|[{2}] на редактирование.\r\n",
-                            redactor.NameInMessages, obj.NameInMessages, obj.ObjectID);
-                        }
+                        FinalMessage += string.Format("\r\nОбъект [{0}]|[{2}] присутствует в контексте редактирования [{1}]|[{3}]," +
+                            " но не обнаружен в составе.\r\n",
+                            obj.NameInMessages, II.NameInMessages, obj.ObjectID, II.ObjectID);
                         isChecked = false;
                     }
-
+                    
                 }
             }
         }
