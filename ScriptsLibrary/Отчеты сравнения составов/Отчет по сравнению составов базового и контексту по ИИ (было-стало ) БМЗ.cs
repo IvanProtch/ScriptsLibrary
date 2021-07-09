@@ -40,7 +40,7 @@ namespace EcoDiffReport
     {
         private string _userError = string.Empty;
         private string _adminError = string.Empty;
-        private long _messageRecepient =3252010 /*Булычева ЕИ*/; //  51448525 /*Протченко ИВ*/
+        private List<long> _messageRecepients = new List<long>() { 3252010 /*Булычева ЕИ*/, 62180376 /*Бородина ЕВ*/ }; //  51448525 /*Протченко ИВ*/
         private long _asm;
         private long _eco;
 
@@ -988,7 +988,7 @@ namespace EcoDiffReport
             if (_adminError.Length > 0)
             {
                 IRouterService router = session.GetCustomService(typeof(IRouterService)) as IRouterService;
-                router.CreateMessage(session.SessionGUID, _messageRecepient, "Ошибка формирования отчета сравнения составов (было-стало)", _adminError, session.UserID);
+                router.CreateMessage(session.SessionGUID, _messageRecepients.ToArray(), "Ошибка формирования отчета сравнения составов (было-стало)", _adminError, session.UserID);
             }
 
             if (_userError.Length > 0)
