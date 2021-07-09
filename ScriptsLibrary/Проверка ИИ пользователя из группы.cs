@@ -337,6 +337,19 @@ public class Script
                                 FinalMessage += string.Format("\n\rНеправильно выбран шаг перевода для объекта {0} при актуальзиции ИИ {1}.\n\r",
                                     obj.NameInMessages, II.NameInMessages);
                             }
+                            if ((reasonToEnterObj.Description == "Аннулирование")
+                                && obj.LCStep != 1058)
+                            {
+                                FinalMessage += string.Format("\n\rВ {1} для аннулируемого объекта {0} неправильно подобрана версия.\n\r",
+                                    obj.NameInMessages, II.NameInMessages);
+                            }
+                        }
+
+                        if (obj.ObjectType == MetaDataHelper.GetObjectTypeID(new Guid("cadd9ab5-306c-11d8-b4e9-00304f19f545" /*Группы материалов*/)))
+                        {
+                            IDBAttribute workShopAtr = obj.GetAttributeByGuid(new Guid("cad009e2-306c-11d8-b4e9-00304f19f545" /*Код цеха*/));
+                            if (workShopAtr == null || workShopAtr.Value.ToString() == string.Empty)
+                                FinalMessage += string.Format("\n\rДля объекта {0} не заполнен 'Цех-потребитель'.\n\r", obj.NameInMessages);
                         }
 
                         #region Проверка подписей у объектов состава ИИ
