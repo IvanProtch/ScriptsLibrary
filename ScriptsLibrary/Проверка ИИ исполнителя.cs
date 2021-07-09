@@ -325,7 +325,7 @@ public class Script
                             if ((reasonToEnterObj.Description == "Создание" || reasonToEnterObj.Description == "Изменение")
                                 && Convert.ToInt32(customIDLC.Value) != 1058/*Шаг 'Согласование'*/)
                             {
-                                FinalMessage += string.Format("\n\rНеправильно выбран шаг перевода для объекта {0} при актуальзиции ИИ {1}.\n\r",
+                                FinalMessage += string.Format("\n\rНеправильно выбран шаг перевода для объекта {0} из {1}.\n\r",
                                     obj.NameInMessages, II.NameInMessages);
                             }
                             if ((reasonToEnterObj.Description == "Аннулирование")
@@ -336,7 +336,7 @@ public class Script
                             }
                         }
 
-                        if (obj.ObjectType == MetaDataHelper.GetObjectTypeID(new Guid("cadd9ab5-306c-11d8-b4e9-00304f19f545" /*Группы материалов*/)))
+                        if (obj.ObjectType == MetaDataHelper.GetObjectTypeID(new Guid("b3ec04e4-9d56-4494-a57b-766d10cdfe27" /*Группа материалов*/)))
                         {
                             IDBAttribute workShopAtr = obj.GetAttributeByGuid(new Guid("cad009e2-306c-11d8-b4e9-00304f19f545" /*Код цеха*/));
                             if (workShopAtr == null || workShopAtr.Value.ToString() == string.Empty)
