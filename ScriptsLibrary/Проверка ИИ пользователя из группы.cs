@@ -24,6 +24,11 @@ public class Script
     /// </summary>
     const long usersGroup = 3254492;
 
+    /// <summary>
+    /// Наименование логической переменной процесса: если значение истинно, скрипт будет запущен
+    /// </summary>
+    private const string isExecutebleVar = "БМЗ_Технол.проработка БЗ";
+
     #region ID Организаций-источников
     const long idBMZ = 3251710; // id объекта организации "БМЗ" 
     const long idKSK = 63822858; // id объекта организации ОП "КСК-Брянск"
@@ -205,6 +210,9 @@ public class Script
     {
         if (Debugger.IsAttached)
             Debugger.Break();
+
+        if ((bool)activity.Variables.Find(isExecutebleVar).TypedValue == false)
+            return;
 
         IUserSession UserSession = activity.Session;
         string FinalMessage = string.Empty;
