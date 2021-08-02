@@ -167,6 +167,7 @@ public class Script
         List<long> signs = LoadItemIds(UserSession, obj, new List<int> { relTypeChangingByII, relTypeSign },
         new List<int> { signType, criptSignType }, 1);
 
+        int actualSignCount = 0;
         foreach (long sign in signs)
         {
             IDBObject signObj = UserSession.GetObject(sign);
@@ -179,12 +180,11 @@ public class Script
 
             string signGraph = signObj.GetAttributeByGuid(new Guid("cad00141-306c-11d8-b4e9-00304f19f545")).Description;
 
-            if (modifyDate > signDate && signGraph == signGraphValue)
-            {
-                message += string.Format("\r\nДля {0} требуется обновить подпись в графе {1}.\r\n",
-                    o.NameInMessages, signGraph);
-            }
+            //подписанные signGraphValue 
+            if (modifyDate < signDate && signGraph == signGraphValue)
+                actualSignCount++;
         }
+
         // Проверка наличия подписи в графе signGraph
         if (signs
             .Select(s => UserSession.GetObject(s))
@@ -194,8 +194,11 @@ public class Script
             message += string.Format("\r\nДля объекта {0} не задана ни одна подпись в графе {1}\r\n",
                 o.NameInMessages, signGraphValue);
         }
-        return message;
+        else if (actualSignCount == 0)
+            message += string.Format("\r\nДля {0} требуется обновить подпись в графе {1}.\r\n",
+                o.NameInMessages, signGraphValue);
 
+        return message;
     }
 
     public void Execute(IActivity activity)
