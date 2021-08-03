@@ -58,6 +58,8 @@ namespace EcoDiffReport
                 if (System.IO.File.Exists(file))
                     System.IO.File.Delete(file);
                 AddToLog("Запускаем скрипт v 3.1");
+                
+                complectUnit = MetaDataHelper.GetObjectTypeID("cad00166-306c-11d8-b4e9-00304f19f545" /*Комплектующая единица*/);
 
                 standart = MetaDataHelper.GetObjectTypeID("cad00252-306c-11d8-b4e9-00304f19f545"); //Стандартные
 
@@ -769,11 +771,14 @@ namespace EcoDiffReport
                 int N = 0;
                 int totalIndex = 0;
                 int rowIndex = 0;
+                List<Material> reportComp = new List<Material>();
                 foreach (var item in resultComposition)
                 {
                     {
-                        if (item.Kolvo1 != item.Kolvo2 || item.HasEmptyKolvo1 != item.HasEmptyKolvo2)
+                        if (!reportComp.Select(e => e.MaterialCaption).Contains(item.MaterialCaption)
+                            && (item.Kolvo1 != item.Kolvo2 || item.HasEmptyKolvo1 != item.HasEmptyKolvo2))
                         {
+                            reportComp.Add(item);
                             AddToLog("createnode " + item.ToString());
                             DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
                             if (compliteReport)
@@ -1053,7 +1058,7 @@ namespace EcoDiffReport
             if (td != null)
                 td.AssignText(text, false, false, false);
         }
-
+        private int complectUnit;
         private int izdelie;
         private int standart;
         private int complects;
@@ -1193,7 +1198,12 @@ namespace EcoDiffReport
                 item.MaterialCode = codeMaterial;
                 item.MaterialCaption = item.Caption;
             }
-
+            if(item.ObjectType == complectUnit)
+            {
+                item.MaterialId = materialId;
+                item.MaterialCode = codeMaterial;
+                item.MaterialCaption = item.Caption;
+            }
             if (item.ObjectType == proch || MetaDataHelper.IsObjectTypeChildOf(item.ObjectType, proch))
             {
                 item.MaterialId = materialId;
