@@ -38,6 +38,9 @@ namespace EcoDiffReport
 
     public class Script1
     {
+        //режим расширенного отчета
+        private bool compliteReport = false;
+
         private string _userError = string.Empty;
         private string _adminError = string.Empty;
         private List<long> _messageRecepients = new List<long>() { 3252010 /*Булычева ЕИ*/, 62180376 /*Бородина ЕВ*/ }; //  51448525 /*Протченко ИВ*/
@@ -50,7 +53,6 @@ namespace EcoDiffReport
             {
                 _asm = objectIDs[0];
                 _eco = session.EditingContextID;
-                bool compliteReport = true;
                 document.Designation = "Сравнение составов";
                 if (System.Diagnostics.Debugger.IsAttached)
                     System.Diagnostics.Debugger.Break();
@@ -485,6 +487,7 @@ namespace EcoDiffReport
                     mat.MaterialId = baseItem.MaterialId;
                     mat.MaterialCode = baseItem.MaterialCode;
                     mat.MaterialCaption = baseItem.MaterialCaption;
+                    mat.type = baseItem.ObjectType;
                     AddToLog("item0 " + baseItem.ToString());
                     //добавляем базовый состав в результат
                     resultComposition.Add(mat);
@@ -601,6 +604,8 @@ namespace EcoDiffReport
                     mat.MaterialId = item.MaterialId;
                     mat.MaterialCode = item.MaterialCode;
                     mat.MaterialCaption = item.MaterialCaption;
+                    mat.type = item.ObjectType;
+
                     //Добавляем снова
                     resultComposition.Add(mat);
 
@@ -798,18 +803,19 @@ namespace EcoDiffReport
                         //когда есть повторение позиции, объединяем с уже записанной
                         foreach (var repItem in reportComp)
                         {
-                            if (repItem.MaterialCaption == item.MaterialCaption)
+                            if (repItem.MaterialCaption == item.MaterialCaption && repItem.type == item.type)
                                 repeatItem = repItem;
                         }
-                        //if (reportComp.Select(e => e.MaterialCaption).Contains(item.MaterialCaption))
-                        //{
-                        //}
+
                         if (repeatItem != null)
                             repeatItem = repeatItem.Combine(item);
                         else
                             reportComp.Add(item);
                     }
                 }
+
+                //удаление дублей с приорететом на технологический состав
+                reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption) > 1 && e.type != complectUnit);
 
                 foreach (var item in reportComp)
                 {
@@ -1297,7 +1303,7 @@ namespace EcoDiffReport
             public string MaterialCaption;
             private string materialCode;
             public string MaterialDMTO;
-
+            public int type;
             /// <summary>
             /// Код АМТО
             /// </summary>
@@ -1356,13 +1362,10 @@ namespace EcoDiffReport
 
             public Material Combine(Material material)
             {
-                if(this.EntersInAsm1.Count == material.EntersInAsm1.Count && !EntersInAsm1.Keys.SequenceEqual(material.EntersInAsm1.Keys)
-                    || this.EntersInAsm1.Count != material.EntersInAsm1.Count)
-                    this.Kolvo1 += material.Kolvo1;
 
-                if (this.EntersInAsm2.Count == material.EntersInAsm2.Count && !EntersInAsm2.Keys.SequenceEqual(material.EntersInAsm2.Keys)
-                    || this.EntersInAsm2.Count != material.EntersInAsm2.Count)
-                    this.Kolvo2 += material.Kolvo2;
+                this.Kolvo1 += material.Kolvo1;
+
+                this.Kolvo2 += material.Kolvo2;
 
                 foreach (var eia1 in material.EntersInAsm1)
                 {
