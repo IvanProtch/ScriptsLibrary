@@ -39,7 +39,7 @@ namespace EcoDiffReport
     public class Script1
     {
         //режим расширенного отчета
-        private bool compliteReport = false;
+        private bool compliteReport =  true;
 
         private string _userError = string.Empty;
         private string _adminError = string.Empty;
@@ -813,14 +813,22 @@ namespace EcoDiffReport
                             reportComp.Add(item);
                     }
                 }
-
+                //записываем код амто для комплектующих
+                foreach (var item in reportComp)
+                {
+                    if (item.type == complectUnit)
+                    {
+                        var constrItem = reportComp.FirstOrDefault(e => e.MaterialCaption == item.MaterialCaption && e.type != complectUnit);
+                        item.MaterialCode = constrItem != null ? constrItem.MaterialCode : item.MaterialCode;
+                    }
+                }
                 //удаление дублей с приорететом на технологический состав
                 reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption) > 1 && e.type != complectUnit);
 
                 foreach (var item in reportComp)
                 {
                     AddToLog("createnode " + item.ToString());
-                    DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
+                    DocumentTreeNode node = docrow.CloneFromTemplate(true, true); 
                     if (compliteReport)
                     {
                         //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
@@ -846,6 +854,8 @@ namespace EcoDiffReport
                                 }
                             }
                         }
+                        item.EntersInAsm1 = item.EntersInAsm1.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
+                        item.EntersInAsm2 = item.EntersInAsm2.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
 
                         #region Запись "было"
 
