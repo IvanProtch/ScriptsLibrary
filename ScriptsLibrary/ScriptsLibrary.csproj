@@ -40,19 +40,23 @@
     <Reference Include="DocumentFormat.OpenXml, Version=2.13.0.0, Culture=neutral, PublicKeyToken=8fb06cb64d019a17, processorArchitecture=MSIL">
       <HintPath>..\packages\DocumentFormat.OpenXml.2.13.0\lib\net46\DocumentFormat.OpenXml.dll</HintPath>
     </Reference>
-    <Reference Include="Intermech.Bcl, Version=6.0.6.1632, Culture=neutral, PublicKeyToken=null" />
-    <Reference Include="Intermech.Document.Model, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Expert, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Expert.Scenarios, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Bcl, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Document.Model, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Expert, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Expert.Editor, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Expert.Scenarios, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Extensions, Version=6.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Extensions.Client, Version=6.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Extensions.Interfaces, Version=6.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Interfaces, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Interfaces.Client, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Intermech.Interfaces.Workflow, Version=6.0.6.1632, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces.Client, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces.Document, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces.Reports, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Intermech.Interfaces.Workflow, Version=6.0.6.1707, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Interfaces.XmlExchange, Version=2.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -76,6 +80,7 @@
     <Compile Include="Отчеты сравнения составов\Отчет по сравнению составов базового и контексту по ИИ %28было-стало %29 БМЗ.cs" />
     <Compile Include="Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs" />
     <Compile Include="Проверка ИИ пользователя из группы.cs" />
+    <Compile Include="Проверка подписей директора.cs" />
     <Compile Include="Экспорт данных\Выгрузка PDF из констр ИИ и СБ.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП обратно.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП.cs" />

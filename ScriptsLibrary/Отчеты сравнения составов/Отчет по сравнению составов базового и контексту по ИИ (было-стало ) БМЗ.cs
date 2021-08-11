@@ -16,7 +16,6 @@ using System.Collections;
 using System.Drawing;
 using Intermech.Expert.Scenarios;
 using Intermech.Interfaces.Client;
-using Intermech.Navigator.Interfaces.QuickSearch;
 using Intermech.Interfaces.Contexts;
 using Intermech.Collections;
 using Intermech;
