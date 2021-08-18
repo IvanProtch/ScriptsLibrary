@@ -222,7 +222,7 @@ namespace EcoDiffReport
                 }
             }
 
-            AddToLog("CreateLink " + lnk.ToString());
+            //AddToLog("CreateLink " + lnk.ToString());
             return item;
         }
 
@@ -245,8 +245,8 @@ namespace EcoDiffReport
                     continue;
 
                 var item = GetItem(row, itemsDict, true);
-                if (item != null)
-                    AddToLog("item " + item.ToString());
+                //if (item != null)
+                //    AddToLog("item " + item.ToString());
             }
 
             itemsDict.Item1.Remove(headerObj.ObjectID);
@@ -354,7 +354,7 @@ namespace EcoDiffReport
             string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
             if (System.IO.File.Exists(file))
                 System.IO.File.Delete(file);
-            AddToLog("Запускаем скрипт v 4.0");
+            //AddToLog("Запускаем скрипт v 4.0");
             _zagotType = MetaDataHelper.GetObjectTypeID("cad001da-306c-11d8-b4e9-00304f19f545" /*Заготовка*/);
             _asmUnitType = MetaDataHelper.GetObjectTypeID("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/);
             _complectUnitType = MetaDataHelper.GetObjectTypeID("cad00166-306c-11d8-b4e9-00304f19f545" /*Комплектующая единица*/);
@@ -519,7 +519,7 @@ namespace EcoDiffReport
             // состав по извещен
             Dictionary<Tuple<long, long>, Item> ecoComposition = GetComposition(headerObj, dt, session);
 
-            AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
+            //AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
 
             #endregion Первый состав по извещению
 
@@ -532,7 +532,7 @@ namespace EcoDiffReport
             dt = DataHelper.GetChildSostavData(items, session, rels, -1, dbrsp, null,
             Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
 
-            AddToLog("Второй состав без извещения " + headerObjBase.ObjectID.ToString());
+            //AddToLog("Второй состав без извещения " + headerObjBase.ObjectID.ToString());
             session.EditingContextID = 0;
 
             Dictionary<Tuple<long, long>, Item> baseComposition = GetComposition(headerObjBase, dt, session);
@@ -554,12 +554,12 @@ namespace EcoDiffReport
                 mat.MaterialCaption = baseItem.Caption;
                 mat.type = baseItem.ObjectType;
                 mat.linkToObj = baseItem.LinkToObjId;
-                AddToLog("item0 " + baseItem.ToString());
+                //AddToLog("item0 " + baseItem.ToString());
                 //добавляем базовый состав в результат
                 resultComposition.Add(mat);
 
                 mat.HasEmptyKolvo1 = baseItem.HasEmptyKolvo;
-                AddToLog("mat01 " + mat.ToString());
+                //AddToLog("mat01 " + mat.ToString());
                 if (baseItem.KolvoSum != null)
                 {
                     //записываем количество из базовой версии
@@ -579,13 +579,13 @@ namespace EcoDiffReport
                         mat.EdIzm = descr.ShortName;
                     else
                     {
-                        AddToLog("descr = null  item.KolvoSum = " + baseItem.KolvoSum.Caption + "  MeasureId = " +
-                        mat.MeasureId);
+                        //AddToLog("descr = null  item.KolvoSum = " + baseItem.KolvoSum.Caption + "  MeasureId = " +
+                        //mat.MeasureId);
                     }
                 }
                 else
                 {
-                    AddToLog("item.KolvoSum == null");
+                    //AddToLog("item.KolvoSum == null");
                     mat.HasEmptyKolvo1 = true;
                 }
 
@@ -634,10 +634,10 @@ namespace EcoDiffReport
                     //mat.Kolvo2 = MeasureHelper.ConvertToMeasuredValue(item2.KolvoSum, mat.MeasureId).Value;
 
                     mat.HasEmptyKolvo2 = ecoItem.HasEmptyKolvo;
-                    AddToLog("item02 " + ecoItem.ToString());
+                    //AddToLog("item02 " + ecoItem.ToString());
                     if (ecoItem.KolvoSum != null)
                     {
-                        AddToLog("item2.KolvoSum != null");
+                        //AddToLog("item2.KolvoSum != null");
                         mat.Kolvo2 = MeasureHelper.ConvertToMeasuredValue(ecoItem.KolvoSum, mat.MeasureId).Value;
 
                         foreach (var kolvoinasm1 in ecoItem.KolvoInAsm)
@@ -649,12 +649,12 @@ namespace EcoDiffReport
                     }
                     else
                     {
-                        AddToLog("item2.KolvoSum == null");
+                        //AddToLog("item2.KolvoSum == null");
                         mat.HasEmptyKolvo2 = true;
                     }
                 }
 
-                AddToLog("mat1 " + mat.ToString());
+                //AddToLog("mat1 " + mat.ToString());
             }
 
             //Добавим те которых не было в первом наборе
@@ -685,8 +685,8 @@ namespace EcoDiffReport
                         mat.EdIzm = descr.ShortName;
                     else
                     {
-                        AddToLog("descr = null  item.KolvoSum = " + item.KolvoSum.Caption + "  MeasureId = " +
-                        mat.MeasureId);
+                        //AddToLog("descr = null  item.KolvoSum = " + item.KolvoSum.Caption + "  MeasureId = " +
+                        //mat.MeasureId);
                     }
                 }
                 else
@@ -694,7 +694,7 @@ namespace EcoDiffReport
                     mat.HasEmptyKolvo2 = true;
                 }
 
-                AddToLog("mat2 " + mat.ToString());
+                //AddToLog("mat2 " + mat.ToString());
             }
 
             List<long> resultCompIds = resultComposition
@@ -772,7 +772,7 @@ namespace EcoDiffReport
                             mat.MaterialCaption = name;
 
                             resultComposition_tech.Add(mat);
-                            AddToLog("mat3 " + mat.ToString());
+                            //AddToLog("mat3 " + mat.ToString());
                         }
                     }
                 }
@@ -784,7 +784,7 @@ namespace EcoDiffReport
             #region Формирование отчета
 
             // Заполнение шапки
-            AddToLog("fill header");
+            //AddToLog("fill header");
             DocumentTreeNode headerNode = document.Template.FindNode("Шапка");
             if (headerNode != null)
             {
@@ -830,12 +830,11 @@ namespace EcoDiffReport
                 }
             }
 
-            //удаление дублей с приорететом на технологический состав
             reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption) > 1 && e.type != _complectUnitType);
 
             foreach (var item in reportComp.OrderBy(e => e.MaterialCaption))
             {
-                AddToLog("createnode " + item.ToString());
+                //AddToLog("createnode " + item.ToString());
                 DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
                 if (compliteReport)
                 {
@@ -882,7 +881,6 @@ namespace EcoDiffReport
 
                             if (N == 1)
                             {
-                                //DocumentTreeNode entrow = node.FindNode("Куда входит строка");
                                 DocumentTreeNode row2 = node.FindNode("Строка2");
                                 if (item.EntersInAsm1.Count != 0)
                                 {
@@ -1001,7 +999,7 @@ namespace EcoDiffReport
                     new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
                     (node as RectangleElement).AssignBottomBorderLine(
                     new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                    AddToLog("item.HasEmptyKolvo  " + item.ToString());
+                    //AddToLog("item.HasEmptyKolvo  " + item.ToString());
                     foreach (DocumentTreeNode child in node.Nodes)
                     {
                         (child as RectangleElement).AssignLeftBorderLine(
@@ -1032,7 +1030,7 @@ namespace EcoDiffReport
                 }
             }
 
-            AddToLog("Завершили создание отчета ");
+            //AddToLog("Завершили создание отчета ");
 
             #endregion Формирование отчета
 
@@ -1048,13 +1046,13 @@ namespace EcoDiffReport
             return true;
         }
 
-        public void AddToLog(string text)
-        {
-            string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
-            text = text + Environment.NewLine;
-            System.IO.File.AppendAllText(file, text);
-            //AddToOutputView(text);
-        }
+        //public void AddToLog(string text)
+        //{
+        //    string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
+        //    text = text + Environment.NewLine;
+        //    System.IO.File.AppendAllText(file, text);
+        //    //AddToOutputView(text);
+        //}
 
         private DocumentTreeNode AddNode(DocumentTreeNode childNode, string value)
         {
