@@ -210,17 +210,11 @@ namespace EcoDiffReport
                 item.MaterialCaption = item.Caption;
             }
 
-            if (item.ObjectType == _matbaseType || MetaDataHelper.IsObjectTypeChildOf(item.ObjectType, _matbaseType))
+            if (item.ObjectType != _sostMaterialType && (item.ObjectType == _matbaseType || MetaDataHelper.IsObjectTypeChildOf(item.ObjectType, _matbaseType)))
             {
                 item.MaterialId = materialId;
                 item.MaterialCaption = item.Caption;
             }
-
-            //if (item.ObjectType == _sostMaterialType || MetaDataHelper.IsObjectTypeChildOf(item.ObjectType, _sostMaterialType))
-            //{
-            //    item.MaterialId = materialId;
-            //    item.MaterialCaption = item.Caption;
-            //}
 
             if (item.ObjectType == _zagotType)
             {
@@ -281,15 +275,31 @@ namespace EcoDiffReport
                     if (item.LinkToObjId == _asm)
                         item.RelationsWithParent = new List<Relation>();
 
+                    Item complectUnit = null;
                     //находим комплектующую указывающую на ту же сборку
-                    if (itemsDict.Item2.ContainsKey(item.LinkToObjId))
+                    if (itemsDict.Item2.TryGetValue(item.LinkToObjId, out complectUnit))
                     {
-                        Item complectUnit = itemsDict.Item2[item.LinkToObjId];
                         item.RelationsWithParent = complectUnit.RelationsWithParent;
 
                         foreach (var relParent in complectUnit.RelationsWithParent)
                         {
                             relParent.Child = item;
+                        }
+                    }
+                }
+
+                //обновляем количество сборок и деталей (констр. сост.) из данных технологического состава
+                if(item.ObjectType == _partType || item.ObjectType == _CEType)
+                {
+                    Item complectUnit = null;
+                    long baseObjId = session.GetObjectBaseVersionByID(item.Id, false).ObjectID;
+                    if (itemsDict.Item2.TryGetValue(baseObjId, out complectUnit))
+                    {
+                        foreach (var item_rwp in item.RelationsWithParent)
+                        {
+                            var associatedItem_rwp = complectUnit.RelationsWithParent
+                                .FirstOrDefault(e => e.Child.LinkToObjId == baseObjId);
+                            item_rwp.Kolvo = associatedItem_rwp != null ? associatedItem_rwp.Kolvo : item_rwp.Kolvo;
                         }
                     }
                 }
