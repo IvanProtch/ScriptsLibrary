@@ -127,8 +127,8 @@ namespace EcoDiffReport
             {
                 Item parent = itemsDict_byObjId[parentId];
 
-                if (parent.ObjectType == _sostMaterialType || MetaDataHelper.IsObjectTypeChildOf(parent.ObjectType, _sostMaterialType))
-                    return null;
+                //if (parent.ObjectType == _sostMaterialType || MetaDataHelper.IsObjectTypeChildOf(parent.ObjectType, _sostMaterialType))
+                //    return null;
 
                 if (parent.ObjectType == _complexPostType)
                     return null;
@@ -141,11 +141,15 @@ namespace EcoDiffReport
                 lnk.Parent = parent;
                 item.RelationsWithParent.Add(lnk);
             }
-
-            // получаем значение количества и записываем в Link
-            object kolvoValue = row["cad00267-306c-11d8-b4e9-00304f19f545"];
-            if (kolvoValue is string)
-                lnk.Kolvo = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(kolvoValue), false);
+            object kolvoValue = null;
+            //для составного не записываем количество, чтобы в расчет составных материалов попадала только се
+            if(item.ObjectType != _sostMaterialType)
+            {
+                // получаем значение количества и записываем в Link
+                kolvoValue = row["cad00267-306c-11d8-b4e9-00304f19f545"];
+                if (kolvoValue is string)
+                    lnk.Kolvo = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(kolvoValue), false);
+            }
 
             if (lnk.Kolvo == null && MetaDataHelper.GetAttribute4RelationType(lnk.RelationTypeId,
             MetaDataHelper.GetAttributeTypeID("cad00267-306c-11d8-b4e9-00304f19f545" /*Количество*/)) != null)
@@ -211,6 +215,12 @@ namespace EcoDiffReport
                 item.MaterialId = materialId;
                 item.MaterialCaption = item.Caption;
             }
+
+            //if (item.ObjectType == _sostMaterialType || MetaDataHelper.IsObjectTypeChildOf(item.ObjectType, _sostMaterialType))
+            //{
+            //    item.MaterialId = materialId;
+            //    item.MaterialCaption = item.Caption;
+            //}
 
             if (item.ObjectType == _zagotType)
             {
@@ -394,6 +404,7 @@ namespace EcoDiffReport
             enabledTypes.Add(_asmUnitType);
             enabledTypes.Add(_complectUnitType);
             enabledTypes.Add(_zagotType);
+            enabledTypes.Add(_sostMaterialType);
 
             string ecoObjCaption = String.Empty;
             IDBObject ecoObj = session.GetObject(session.EditingContextID, false);
