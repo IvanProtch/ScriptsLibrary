@@ -289,18 +289,26 @@ namespace EcoDiffReport
                 }
 
                 //обновляем количество сборок и деталей (констр. сост.) из данных технологического состава
-                if(item.ObjectType == _partType || item.ObjectType == _CEType)
+                if (item.ObjectType == _partType || item.ObjectType == _CEType)
                 {
-                    Item complectUnit = null;
-                    long baseObjId = session.GetObjectBaseVersionByID(item.Id, false).ObjectID;
-                    if (itemsDict.Item2.TryGetValue(baseObjId, out complectUnit))
+                    //(по ссылке на объект не удается связать комплектующую со сборкой или деталью, -- ссылка указывает на ид версии базового объекта, а не текущего)
+                    //если комплектующая associatedComplectUnit входит в собираемую с тем же названием что и item в вышестоящую сборку
+                    var itemEntersInAsms = item.KolvoInAsm.Keys.Select(e => e.Parent.Caption);
+
+                    var associatedComplectUnit = itemsDict.Item2.Values
+                        .Where(e => e.ObjectType == _complectUnitType)
+                        .Where(e => e.Caption == item.Caption)
+                        .FirstOrDefault(e => e.KolvoInAsm.Keys.Select(r => r.Parent.Caption).Where(t => itemEntersInAsms.Contains(t)).Count() > 0);
+
+                    //перезаписываем значения количества для item из данных associatedComplectUnit
+                    foreach (var item_rwp in item.RelationsWithParent)
                     {
-                        foreach (var item_rwp in item.RelationsWithParent)
-                        {
-                            var associatedItem_rwp = complectUnit.RelationsWithParent
-                                .FirstOrDefault(e => e.Child.LinkToObjId == baseObjId);
-                            item_rwp.Kolvo = associatedItem_rwp != null ? associatedItem_rwp.Kolvo : item_rwp.Kolvo;
-                        }
+                        if (associatedComplectUnit == null)
+                            break;
+
+                        var associatedItem_rwp = associatedComplectUnit.RelationsWithParent
+                            .FirstOrDefault(e => e.Child.Caption == associatedComplectUnit.Caption);
+                        item_rwp.Kolvo = associatedItem_rwp != null ? associatedItem_rwp.Kolvo : item_rwp.Kolvo;
                     }
                 }
             }
