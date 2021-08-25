@@ -178,9 +178,11 @@ namespace EcoDiffReport
                 if (parent.ObjectType == _complexPostType)
                     return null;
 
-                if ((parent.ObjectType == _CEType)
-                    && !(new int[] { _MOType, _CEType, _partType }).Contains(item.ObjectType))
-                    return null;
+                //if ((parent.ObjectType == _CEType)
+                //    && 
+                //    !((new int[] { _MOType, _CEType, _partType }).Contains(item.ObjectType)
+                //    || (MetaDataHelper.IsObjectTypeChildOf(_partType, item.ObjectType))))
+                //    return null;
 
                 parent.RelationsWithChild.Add(lnk);
                 lnk.Parent = parent;
@@ -439,7 +441,19 @@ namespace EcoDiffReport
                     if (composition.TryGetValue(itemKey, out cachedItem))
                     {
                         if (cachedItem.AmountSum != null)
+                        {
                             cachedItem.AmountSum.Add(AmountItemClone.AmountSum);
+
+                            //обновляем данные по входямостям в сборки
+                            foreach (var kic_AmountInAsm in AmountItemClone.AmountInAsm)
+                            {
+                                MeasuredValue AmountInAsm = null;
+                                if (cachedItem.AmountInAsm.TryGetValue(kic_AmountInAsm.Key, out AmountInAsm))
+                                    cachedItem.AmountInAsm[kic_AmountInAsm.Key].Add(AmountInAsm);
+                                else
+                                    cachedItem.AmountInAsm.Add(kic_AmountInAsm.Key, kic_AmountInAsm.Value);
+                            }
+                        }
                         else
                             cachedItem.AmountSum = AmountItemClone.AmountSum;
                     }
@@ -481,7 +495,7 @@ namespace EcoDiffReport
             enabledTypes.Add(_CEType);
             enabledTypes.Add(_partType);
             enabledTypes.Add(_MOType);
-            //enabledTypes.AddRange(MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)));
+            enabledTypes.AddRange(MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)));
             enabledTypes.AddRange(MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00185-306c-11d8-b4e9-00304f19f545" /*Техпроцесс базовый*/)));
             enabledTypes.Add(MetaDataHelper.GetObjectTypeID("cad001ff-306c-11d8-b4e9-00304f19f545" /*Цехозаход*/));
             enabledTypes.Add(MetaDataHelper.GetObjectTypeID("cad00178-306c-11d8-b4e9-00304f19f545" /*Операция*/));
@@ -686,7 +700,7 @@ namespace EcoDiffReport
             {
                 var baseItem = resItem.Value;
                 Material mat = new Material();
-                mat.MaterialId = baseItem.Id;
+                mat.MaterialId = baseItem.MaterialId;
                 mat.MaterialCaption = baseItem.Caption;
                 mat.type = baseItem.ObjectType;
                 mat.linkToObj = baseItem.LinkToObjId;
@@ -799,7 +813,7 @@ namespace EcoDiffReport
             foreach (var item in ecoComposition.Values)
             {
                 Material mat = new Material();
-                mat.MaterialId = item.Id;
+                mat.MaterialId = item.MaterialId;
                 mat.MaterialCaption = item.Caption;
                 mat.type = item.ObjectType;
                 mat.linkToObj = item.LinkToObjId;
@@ -838,6 +852,10 @@ namespace EcoDiffReport
             }
 
             resultComposition = resultComposition.Where(e => e.Amount1 != e.Amount2).ToList();
+
+            var zagotMaterials = resultComposition.Where(e => e.type == _zagotType)
+                .Select(e => e.MaterialId)
+                .ToList();
 
             List<long> resultCompIds_notZerRef = resultComposition
                 .Select(e => e.linkToObj)
@@ -919,7 +937,79 @@ namespace EcoDiffReport
                         }
                     }
                 }
-            }  
+            }
+
+            if (zagotMaterials.Count > 0)
+            {
+                IDBObjectCollection col = session.GetObjectCollection(_matbaseType);
+
+                List<ConditionStructure> conds = new List<ConditionStructure>();
+                conds.Add(new ConditionStructure((Int32)ObligatoryObjectAttributes.F_OBJECT_ID, RelationalOperators.In,
+                zagotMaterials.ToArray(), LogicalOperators.NONE, 0, false));
+
+                columns = new List<ColumnDescriptor>();
+
+                columns.Add(new ColumnDescriptor((Int32)ObligatoryObjectAttributes.F_ID, AttributeSourceTypes.Auto,
+                ColumnContents.Text, ColumnNameMapping.FieldName, SortOrders.NONE, 0));
+
+                columns.Add(new ColumnDescriptor((Int32)ObligatoryObjectAttributes.F_OBJECT_ID,
+                AttributeSourceTypes.Object,
+                ColumnContents.Text, ColumnNameMapping.FieldName, SortOrders.NONE, 0));
+
+                columns.Add(new ColumnDescriptor((Int32)ObligatoryObjectAttributes.CAPTION,
+                AttributeSourceTypes.Object,
+                ColumnContents.Text, ColumnNameMapping.FieldName, SortOrders.NONE, 0));
+
+                columns.Add(new ColumnDescriptor(
+                MetaDataHelper.GetAttributeTypeID("120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/),
+                AttributeSourceTypes.Object, ColumnContents.Text, ColumnNameMapping.Guid, SortOrders.NONE, 0));
+
+                ////attrId = MetaDataHelper.GetAttributeTypeID(new Guid(Intermech.SystemGUIDs.attributeSubstituteInGroup) /*Номер заменителя в группе*/);
+                ////columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
+                ////ColumnNameMapping.Guid, SortOrders.NONE, 0));
+
+                if (addBmzFields)
+                {
+                    attrId = MetaDataHelper.GetAttributeTypeID(new Guid("8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/) /*Признак изготовления*/);
+                    columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
+                    ColumnNameMapping.Guid, SortOrders.NONE, 0));
+                }
+
+                tags = new HybridDictionary();
+                dbrsp = new DBRecordSetParams(conds.ToArray(),
+                columns != null
+                ? columns.ToArray()
+                : null,
+                0, null,
+                QueryConsts.All);
+                dt = col.Select(dbrsp);
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    long id = Convert.ToInt64(row["F_OBJECT_ID"]);
+                    string name = Convert.ToString(row["CAPTION"]);
+                    string code = Convert.ToString(row["120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/]);
+
+                    bool isPurchased = false;
+                    if (row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/] is long)
+                    {
+                        isPurchased = Convert.ToInt32(row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/]) != 1 ? true : false;
+                    }
+
+                    var materials = resultComposition.Where(x => x.MaterialId == id);
+                    foreach (var mat in materials)
+                    {
+                        if (mat != null && isPurchased)
+                        {
+                            mat.MaterialCode = code;
+                            mat.MaterialCaption = name;
+
+                            resultComposition_tech.Add(mat);
+                            //AddToLog("mat3 " + mat.ToString());
+                        }
+                    }
+                }
+            }
 
             #endregion
 

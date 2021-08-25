@@ -21,7 +21,7 @@ using Intermech.Collections;
 using Intermech;
 using Intermech.Interfaces.Workflow;
 
-namespace EcoDiffReport
+namespace EcoDiffReport1
 {
     public class Script
     {

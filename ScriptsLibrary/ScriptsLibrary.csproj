@@ -103,6 +103,9 @@
     <Compile Include="Экспорт данных\Экспорт выбранных значений атрибутов в Excel.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\.editorconfig">
+      <Link>.editorconfig</Link>
+    </None>
     <None Include="ABCpdf.chm" />
     <None Include="packages.config" />
     <None Include="waswill_intermech.cd" />
