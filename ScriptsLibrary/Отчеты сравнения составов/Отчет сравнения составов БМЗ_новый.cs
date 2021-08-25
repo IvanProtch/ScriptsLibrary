@@ -115,7 +115,6 @@ namespace EcoDiffReport
                 if (!string.IsNullOrEmpty(designation))
                     caption = designation + " " + name;
                 item.Caption = caption;
-                item.ObjectCaption = Convert.ToString(row["CAPTION"]);
                 if (!contextMode)
                 {
                     if (contextObjects.Contains(item.ObjectId) || contextObjects.Contains(-item.ObjectId)) return null; //Объект входит в состав извещения значит считаем что в составе без извещения его нет
@@ -172,17 +171,8 @@ namespace EcoDiffReport
             {
                 Item parent = itemsDict_byObjId[parentId];
 
-                //if (parent.ObjectType == _sostMaterialType || MetaDataHelper.IsObjectTypeChildOf(parent.ObjectType, _sostMaterialType))
-                //    return null;
-
                 if (parent.ObjectType == _complexPostType)
                     return null;
-
-                //if ((parent.ObjectType == _CEType)
-                //    && 
-                //    !((new int[] { _MOType, _CEType, _partType }).Contains(item.ObjectType)
-                //    || (MetaDataHelper.IsObjectTypeChildOf(_partType, item.ObjectType))))
-                //    return null;
 
                 parent.RelationsWithChild.Add(lnk);
                 lnk.Parent = parent;
@@ -217,14 +207,12 @@ namespace EcoDiffReport
                 itemsDict_byLinkId[linkId] = item;
             }
 
-
-
-            //bool isDopZamen = false;
-            //object dopZamenValue = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
-            //if (dopZamenValue != DBNull.Value)
-            //{
-            //    isDopZamen = Convert.ToInt32(dopZamenValue) != 0;
-            //}
+            bool isDopZamen = false;
+            object dopZamenValue = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
+            if (dopZamenValue != DBNull.Value)
+            {
+                isDopZamen = Convert.ToInt32(dopZamenValue) != 0;
+            }
 
             object isPocupValue = row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/];
             if (isPocupValue != DBNull.Value)
@@ -248,19 +236,16 @@ namespace EcoDiffReport
             if (item.ObjectType == _complectUnitType)
             {
                 item.MaterialId = materialId;
-                item.MaterialCaption = item.Caption;
             }
 
             if (item.ObjectType == _complectsType || MetaDataHelper.IsObjectTypeChildOf(item.ObjectType, _complectsType))
             {
                 item.MaterialId = materialId;
-                item.MaterialCaption = item.Caption;
             }
 
             if (item.ObjectType != _sostMaterialType && (item.ObjectType == _matbaseType || MetaDataHelper.IsObjectTypeChildOf(item.ObjectType, _matbaseType)))
             {
                 item.MaterialId = materialId;
-                item.MaterialCaption = item.Caption;
             }
 
             if (item.ObjectType == _zagotType)
@@ -354,7 +339,8 @@ namespace EcoDiffReport
                             break;
 
                         var associatedItem_rwp = associatedComplectUnit.RelationsWithParent
-                            .FirstOrDefault(e => e.Child.Caption == associatedComplectUnit.Caption);
+                            .FirstOrDefault(e => e.Child.Caption == associatedComplectUnit.Caption)
+
                         item_rwp.Amount = associatedItem_rwp != null ? associatedItem_rwp.Amount : item_rwp.Amount;
                     }
                 }
@@ -406,27 +392,6 @@ namespace EcoDiffReport
                 if (!hasContextObjects)
                     continue;
 
-                //if (itemsAmount == null || itemsAmount.Count == 0)
-                //{
-                //    var AmountItemClone = mainClone.Clone();
-
-                //    Item cachedItem;
-                //    var itemKey = new Tuple<long, long>(0, item.GetKey());
-                //    if (composition.TryGetValue(itemKey, out cachedItem))
-                //    {
-                //        if (cachedItem.AmountSum != null)
-                //            cachedItem.AmountSum.Add(AmountItemClone.AmountSum);
-                //        else
-                //            cachedItem.AmountSum = AmountItemClone.AmountSum;
-                //    }
-                //    else
-                //    {
-                //        composition[itemKey] = AmountItemClone;
-                //    }
-
-                //    AddToLog("res2 " + mainClone);
-                //    continue;
-                //}
 
                 foreach (var itemAmount in itemsAmount)
                 {
@@ -436,6 +401,7 @@ namespace EcoDiffReport
 
                     //если несколько заготовок используют одинаковый сортамент, то materialId = id_сортамента. cachedItem в этом случае будет сортамент. К сортаменту добавляется количество материала в заготовке использующей этот сортамент.
                     //ключ состоит из ид.ед.изм и materialid, потому что itemsAmount для одного item может быть несколько с разными единицами измерения
+
                     Item cachedItem;
                     var itemKey = new Tuple<long, long>(itemAmount.Key, item.GetKey());
                     if (composition.TryGetValue(itemKey, out cachedItem))
@@ -755,31 +721,6 @@ namespace EcoDiffReport
                         ecoComposition.Remove(emptyItem);
                     }
                 }
-
-                //// Отдельно обработаем случай с заготовками
-                //if (ecoItem == null
-                //&& MetaDataHelper.IsObjectTypeChildOf(resItem.Value.ObjectType, _zagotType))
-                //{
-                //    Tuple<long, long> zagotItem = null;
-
-                //    foreach (var res2Item in ecoComposition)
-                //    {
-                //        if (res2Item.Key != resItem.Key ||
-                //        res2Item.Value.MaterialId != resItem.Value.MaterialId ||
-                //        !MetaDataHelper.IsObjectTypeChildOf(resItem.Value.ObjectType, _zagotType))
-                //        {
-                //            continue;
-                //        }
-
-                //        ecoItem = res2Item.Value;
-                //        zagotItem = res2Item.Key;
-                //    }
-
-                //    if (zagotItem != null)
-                //    {
-                //        ecoComposition.Remove(zagotItem);
-                //    }
-                //}
 
                 if (ecoItem != null)
                 {
@@ -1467,8 +1408,8 @@ namespace EcoDiffReport
                             string text = "Отсутствует количество. Тип связи " +
                             MetaDataHelper.GetRelationTypeName(RelationTypeId) + " Род. объект " +
                             Parent.ToString() + " Дочерний объект " + Child.ToString();
-                            string text1 = "Отсутствует количество. " + " Род. объект '" + Parent.ObjectCaption +
-                            "' Дочерний объект '" + Child.ObjectCaption + "'";
+                            string text1 = "Отсутствует количество. " + " Род. объект '" + Parent.Caption +
+                            "' Дочерний объект '" + Child.Caption + "'";
 
                             //Script1.AddToOutputView(text1);
 
@@ -1532,47 +1473,34 @@ namespace EcoDiffReport
                 //return string.Format( " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}", MaterialId, MaterialCode, MaterialCaption, Id, Caption, AmountSum, objType1);
                 return string.Format(
                 " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}",
-                MaterialId, MaterialCode, MaterialCaption, Id, Caption, AmountSum, objType1);
+                MaterialId, MaterialCode, Caption, Id, Caption, AmountSum, objType1);
             }
 
             public virtual Item Clone()
             {
                 Item clone = new Item();
                 clone.MaterialId = MaterialId;
-                clone.MaterialCaption = MaterialCaption;
                 clone.MaterialCode = MaterialCode;
-                clone.MaterialDMTO = MaterialDMTO;
                 clone.Id = Id;
                 clone.ObjectId = ObjectId;
                 clone.Caption = Caption;
-                clone.ObjectGuid = ObjectGuid;
                 clone.ObjectType = ObjectType;
                 clone.RelationsWithParent = RelationsWithParent;
                 clone.RelationsWithChild = RelationsWithChild;
                 clone._AmountInAsm = _AmountInAsm;
                 clone.LinkToObjId = LinkToObjId;
                 clone.isPocup = isPocup;
-                //     clone.Amount = Amount;
                 return clone;
             }
 
-            public string MaterialDMTO = null;
             public bool isContextObject = false;
             public bool isPocup = false;
             public MeasuredValue AmountSum;
-
-            /// <summary>
-            /// MaterialId == Id
-            /// </summary>
             public long MaterialId;
-
-            public string MaterialCaption;
             public string MaterialCode;
             public long Id;
             public long ObjectId;
             public string Caption;
-            public string ObjectCaption;
-            public Guid ObjectGuid;
             public long LinkToObjId;
             public int ObjectType;
 
