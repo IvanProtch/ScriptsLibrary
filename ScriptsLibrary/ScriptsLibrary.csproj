@@ -109,6 +109,7 @@
     <None Include="ABCpdf.chm" />
     <None Include="packages.config" />
     <None Include="waswill_intermech.cd" />
+    <None Include="Отчеты сравнения составов\ClassDiagram1.cd" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="ABCpdfQuickStart.txt" />

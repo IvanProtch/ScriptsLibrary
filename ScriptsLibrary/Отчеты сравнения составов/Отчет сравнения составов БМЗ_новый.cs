@@ -1,5 +1,4 @@
-﻿
-///Скрипт v.3.1 - Добавлены входимости материалов в ближайшие сборки
+﻿///Скрипт v.3.1 - Добавлены входимости материалов в ближайшие сборки
 //Скрипт v.4.0 - Расчет ведется по технологическому составу
 using System;
 using System.Windows.Forms;
@@ -23,7 +22,6 @@ using Intermech.Interfaces.Contexts;
 using Intermech.Collections;
 using Intermech;
 using Intermech.Interfaces.Workflow;
-
 namespace EcoDiffReport
 {
     public class Script
@@ -103,7 +101,7 @@ namespace EcoDiffReport
             {
                 var objType = Convert.ToInt32(row["F_OBJECT_TYPE"]);
 
-                if(objType == _sostMaterialType)
+                if (objType == _sostMaterialType)
                     item = new ComplexMaterialItem();
                 else if (objType == _matbaseType || MetaDataHelper.IsObjectTypeChildOf(objType, _matbaseType))
                     item = new MaterialItem();
@@ -127,7 +125,7 @@ namespace EcoDiffReport
                 if (contextObjectsID.Contains(item.Id))
                     item.isContextObject = true;
 
-                if(item is ComplexMaterialItem)
+                if (item is ComplexMaterialItem)
                 {
                     var Amount1 = row["b9ab8a1a-e988-4031-9f30-72a95644830a" /*Количество компонента 1 (БМЗ)*/];
                     if (Amount1 is string)
@@ -141,27 +139,29 @@ namespace EcoDiffReport
                     if (AmountMain is string)
                         (item as ComplexMaterialItem).MainComponentAmount = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(AmountMain), false);
                 }
-                if(item is MaterialItem)
+                if (item is MaterialItem)
                 {
                     var compSostMat = row["54b2e64e-1d4b-4a9d-9633-023f6b6bcd4a" /*Компонент составного материала*/];
-                    if(compSostMat is string)
+                    if (compSostMat is string)
                     {
                         switch (compSostMat.ToString())
                         {
                             case "Основа":
                                 (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.ComponentMain;
                                 break;
+
                             case "Компонент 1":
                                 (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.Component1;
                                 break;
+
                             case "Компонент 2":
                                 (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.Component2;
                                 break;
+
                             default:
                                 break;
                         }
                     }
-                        
                 }
             }
 
@@ -185,7 +185,7 @@ namespace EcoDiffReport
             }
             object AmountValue = null;
             //для составного не записываем количество, чтобы в расчет составных материалов попадала только се
-            if(item.ObjectType != _sostMaterialType)
+            if (item.ObjectType != _sostMaterialType)
             {
                 // получаем значение количества и записываем в Link
                 AmountValue = row["cad00267-306c-11d8-b4e9-00304f19f545"];
@@ -350,7 +350,7 @@ namespace EcoDiffReport
                     }
                 }
 
-                if(item is ComplexMaterialItem)
+                if (item is ComplexMaterialItem)
                 {
                     ComplexMaterialItem complexMaterial = item as ComplexMaterialItem;
 
@@ -358,20 +358,22 @@ namespace EcoDiffReport
                     {
                         switch ((item_rwc.Child as MaterialItem).ComplexMaterialComponentValue)
                         {
-                            case  MaterialItem.ComplexMaterialComponent.Component1:
+                            case MaterialItem.ComplexMaterialComponent.Component1:
                                 item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.Component1Amount : item_rwc.Amount;
                                 break;
+
                             case MaterialItem.ComplexMaterialComponent.Component2:
                                 item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.Component2Amount : item_rwc.Amount;
                                 break;
+
                             case MaterialItem.ComplexMaterialComponent.ComponentMain:
                                 item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.MainComponentAmount : item_rwc.Amount;
                                 break;
+
                             default:
                                 break;
                         }
                     }
-                     
                 }
             }
 
@@ -396,7 +398,6 @@ namespace EcoDiffReport
 
                 if (!hasContextObjects)
                     continue;
-
 
                 foreach (var itemAmount in itemsAmount)
                 {
@@ -562,7 +563,6 @@ namespace EcoDiffReport
             columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
             ColumnNameMapping.Guid, SortOrders.NONE, 0));
 
-            
             attrId = MetaDataHelper.GetAttributeTypeID("cad00020-306c-11d8-b4e9-00304f19f545" /*Наименование*/);
             columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
             ColumnNameMapping.Guid, SortOrders.NONE, 0));
@@ -810,6 +810,7 @@ namespace EcoDiffReport
                 .ToList();
 
             #region Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
+
             List<Material> resultComposition_tech = new List<Material>();
             resultComposition_tech.AddRange(resultComposition.Where(e => e.isPurchased));
 
@@ -957,9 +958,9 @@ namespace EcoDiffReport
                 }
             }
 
-            #endregion
+            #endregion Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
-            #endregion
+            #endregion Итоговый состав материалов
 
             #region Формирование отчета
 
@@ -1351,293 +1352,291 @@ namespace EcoDiffReport
                 MaterialId, MaterialCode, MaterialCaption, Amount1, Amount2);
             }
         }
+    }
 
-        /// <summary>
-        /// Связь между объектами Item. Через связь записывается исходное значение количества материала
-        /// </summary>
-        private class Relation
+    /// <summary>
+    /// Связь между объектами Item. Через связь записывается исходное значение количества материала
+    /// </summary>
+    public class Relation
+    {
+        public long LinkId;
+        public int RelationTypeId;
+        public Item Child;
+        public Item Parent;
+        public MeasuredValue Amount;
+        public bool HasEmptyAmount = false;
+
+        public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
         {
-            public long LinkId;
-            public int RelationTypeId;
-            public Item Child;
-            public Item Parent;
-            public MeasuredValue Amount;
-            public bool HasEmptyAmount = false;
-
-            public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
+            IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
+            IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, ref exceptionInfo);
+            //Количество инициализируется в методе GetItem
+            // если значение количества пустое, записываем количество у связи, затем возвращаем
+            if (Amount != null)
             {
-                IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
-                IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, ref exceptionInfo);
-                //Количество инициализируется в методе GetItem
-                // если значение количества пустое, записываем количество у связи, затем возвращаем
-                if (Amount != null)
+                if (itemsAmount == null || itemsAmount.Count == 0)
                 {
-                    if (itemsAmount == null || itemsAmount.Count == 0)
-                    {
-                        result[MeasureHelper.FindDescriptor(Amount).PhysicalQuantityID] = Amount.Clone() as MeasuredValue;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            foreach (var itemAmount in itemsAmount)
-                            {
-                                itemAmount.Value.Multiply(Amount);
-                                result[MeasureHelper.FindDescriptor(Amount).PhysicalQuantityID] = itemAmount.Value;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptionInfo = new Tuple<string, string>(this.Child.Caption, ex.Message);
-                            return null;
-                        }
-                    }
+                    result[MeasureHelper.FindDescriptor(Amount).PhysicalQuantityID] = Amount.Clone() as MeasuredValue;
                 }
                 else
                 {
-                    if (HasEmptyAmount)
+                    try
                     {
-                        hasemptyAmountRelations = true;
-                        if (Parent == null)
+                        foreach (var itemAmount in itemsAmount)
                         {
-                            AddToLogForLink("Parent == null" + LinkId);
-                        }
-
-                        if (Child == null)
-                        {
-                            AddToLogForLink("Child == null" + LinkId);
-                        }
-
-                        if (Parent != null && Child != null)
-                        {
-                            string text = "Отсутствует количество. Тип связи " +
-                            MetaDataHelper.GetRelationTypeName(RelationTypeId) + " Род. объект " +
-                            Parent.ToString() + " Дочерний объект " + Child.ToString();
-                            string text1 = "Отсутствует количество. " + " Род. объект '" + Parent.Caption +
-                            "' Дочерний объект '" + Child.Caption + "'";
-
-                            //Script1.AddToOutputView(text1);
-
-                            #region Перенесем выполнение кода статического метода в текущее место
-
-                            IOutputView view = ServicesManager.GetService(typeof(IOutputView)) as IOutputView;
-                            if (view != null)
-                                view.WriteString("Скрипт сравнения составов", text1);
-                            else
-                                AddToLogForLink("view == null");
-
-                            #endregion Перенесем выполнение кода статического метода в текущее место
-
-                            AddToLogForLink(text);
+                            itemAmount.Value.Multiply(Amount);
+                            result[MeasureHelper.FindDescriptor(Amount).PhysicalQuantityID] = itemAmount.Value;
                         }
                     }
-
-                    if (Child.RelationsWithChild == null || Child.RelationsWithChild.Count == 0)
+                    catch (Exception ex)
                     {
-                        //Если это материал и он последний, то его количество равно 0
-                        return result; // null
+                        exceptionInfo = new Tuple<string, string>(this.Child.Caption, ex.Message);
+                        return null;
+                    }
+                }
+            }
+            else
+            {
+                if (HasEmptyAmount)
+                {
+                    hasemptyAmountRelations = true;
+                    if (Parent == null)
+                    {
+                        AddToLogForLink("Parent == null" + LinkId);
                     }
 
-                    if (itemsAmount != null)
+                    if (Child == null)
                     {
-                        result = itemsAmount;
+                        AddToLogForLink("Child == null" + LinkId);
+                    }
+
+                    if (Parent != null && Child != null)
+                    {
+                        string text = "Отсутствует количество. Тип связи " +
+                        MetaDataHelper.GetRelationTypeName(RelationTypeId) + " Род. объект " +
+                        Parent.ToString() + " Дочерний объект " + Child.ToString();
+                        string text1 = "Отсутствует количество. " + " Род. объект '" + Parent.Caption +
+                        "' Дочерний объект '" + Child.Caption + "'";
+
+                        //Script1.AddToOutputView(text1);
+
+                        #region Перенесем выполнение кода статического метода в текущее место
+
+                        IOutputView view = ServicesManager.GetService(typeof(IOutputView)) as IOutputView;
+                        if (view != null)
+                            view.WriteString("Скрипт сравнения составов", text1);
+                        else
+                            AddToLogForLink("view == null");
+
+                        #endregion Перенесем выполнение кода статического метода в текущее место
+
+                        AddToLogForLink(text);
                     }
                 }
 
-                return result;
+                if (Child.RelationsWithChild == null || Child.RelationsWithChild.Count == 0)
+                {
+                    //Если это материал и он последний, то его количество равно 0
+                    return result; // null
+                }
+
+                if (itemsAmount != null)
+                {
+                    result = itemsAmount;
+                }
             }
 
-            public override string ToString()
-            {
-                string res = "Link=" + LinkId.ToString();
-                if (Parent != null)
-                    res = res + " parent= " + Parent.Caption.ToString();
-                if (Child != null)
-                    res = res + " child= " + Child.Caption.ToString();
-                res = res + " Количество = " + Convert.ToString(Amount);
-                return res;
-            }
+            return result;
+        }
 
-            public void AddToLogForLink(string text)
+        public override string ToString()
+        {
+            string res = "Link=" + LinkId.ToString();
+            if (Parent != null)
+                res = res + " parent= " + Parent.Caption.ToString();
+            if (Child != null)
+                res = res + " child= " + Child.Caption.ToString();
+            res = res + " Количество = " + Convert.ToString(Amount);
+            return res;
+        }
+
+        public void AddToLogForLink(string text)
+        {
+            string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
+            text = text + Environment.NewLine;
+            System.IO.File.AppendAllText(file, text);
+            //AddToOutputView(text);
+        }
+    }
+
+    /// <summary>
+    /// Объект. Хранит ссылки на связи Link; сумму количества материала (получено из связей)
+    /// </summary>
+    public class Item
+    {
+        public override string ToString()
+        {
+            string objType1 = MetaDataHelper.GetObjectTypeName(ObjectType);
+            //return string.Format( " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}", MaterialId, MaterialCode, MaterialCaption, Id, Caption, AmountSum, objType1);
+            return string.Format(
+            " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}",
+            MaterialId, MaterialCode, Caption, Id, Caption, AmountSum, objType1);
+        }
+
+        public virtual Item Clone()
+        {
+            Item clone = new Item();
+            clone.MaterialId = MaterialId;
+            clone.MaterialCode = MaterialCode;
+            clone.Id = Id;
+            clone.ObjectId = ObjectId;
+            clone.Caption = Caption;
+            clone.ObjectType = ObjectType;
+            clone.RelationsWithParent = RelationsWithParent;
+            clone.RelationsWithChild = RelationsWithChild;
+            clone._AmountInAsm = _AmountInAsm;
+            clone.LinkToObjId = LinkToObjId;
+            clone.isPocup = isPocup;
+            return clone;
+        }
+
+        public bool isContextObject = false;
+        public bool isPocup = false;
+        public MeasuredValue AmountSum;
+        public long MaterialId;
+        public string MaterialCode;
+        public long Id;
+        public long ObjectId;
+        public string Caption;
+        public long LinkToObjId;
+        public int ObjectType;
+
+        /// <summary>
+        /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи
+        /// </summary>
+        public Dictionary<Relation, MeasuredValue> AmountInAsm
+        {
+            get
             {
-                string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
-                text = text + Environment.NewLine;
-                System.IO.File.AppendAllText(file, text);
-                //AddToOutputView(text);
+                if (_AmountInAsm.Keys.Count == 0)
+                {
+                    foreach (var rel in RelationsWithParent)
+                    {
+                        if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/)).ObjectTypeID)
+                        {
+                            _AmountInAsm.Add(rel, rel.Amount);
+                            return _AmountInAsm;
+                        }
+
+                        if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID)
+                            _AmountInAsm.Add(rel, rel.Amount);
+                        else
+                        {
+                            var nextAsms = rel.Parent.AmountInAsm;
+                            foreach (var na in nextAsms)
+                            {
+                                _AmountInAsm[na.Key] = rel.Amount;
+                            }
+                        }
+                    }
+                }
+                return _AmountInAsm;
             }
         }
 
+        //   public MeasuredValue Amount;
         /// <summary>
-        /// Объект. Хранит ссылки на связи Link; сумму количества материала (получено из связей)
+        /// Связи с дочерними объектами
         /// </summary>
-        private class Item
+        public List<Relation> RelationsWithChild = new List<Relation>();
+
+        /// <summary>
+        /// Связи с родительскими объектами
+        /// </summary>
+        public List<Relation> RelationsWithParent = new List<Relation>();
+
+        public bool HasEmptyAmount = false;
+
+        private Dictionary<Relation, MeasuredValue> _AmountInAsm = new Dictionary<Relation, MeasuredValue>();
+
+        public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
         {
-            public override string ToString()
-            {
-                string objType1 = MetaDataHelper.GetObjectTypeName(ObjectType);
-                //return string.Format( " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}", MaterialId, MaterialCode, MaterialCaption, Id, Caption, AmountSum, objType1);
-                return string.Format(
-                " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}",
-                MaterialId, MaterialCode, Caption, Id, Caption, AmountSum, objType1);
-            }
+            MeasuredValue measuredValue = null;
+            IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
+            if (this.isContextObject) hasContextObject = true;
 
-            public virtual Item Clone()
-            {
-                Item clone = new Item();
-                clone.MaterialId = MaterialId;
-                clone.MaterialCode = MaterialCode;
-                clone.Id = Id;
-                clone.ObjectId = ObjectId;
-                clone.Caption = Caption;
-                clone.ObjectType = ObjectType;
-                clone.RelationsWithParent = RelationsWithParent;
-                clone.RelationsWithChild = RelationsWithChild;
-                clone._AmountInAsm = _AmountInAsm;
-                clone.LinkToObjId = LinkToObjId;
-                clone.isPocup = isPocup;
-                return clone;
-            }
+            if (exceptionInfo == null)
+                exceptionInfo = new Tuple<string, string>(this.Caption, string.Empty);
 
-            public bool isContextObject = false;
-            public bool isPocup = false;
-            public MeasuredValue AmountSum;
-            public long MaterialId;
-            public string MaterialCode;
-            public long Id;
-            public long ObjectId;
-            public string Caption;
-            public long LinkToObjId;
-            public int ObjectType;
-
-            /// <summary>
-            /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи
-            /// </summary>
-            public Dictionary<Relation, MeasuredValue> AmountInAsm
+            foreach (Relation relation in RelationsWithParent)
             {
-                get
+                bool hasContextObject1 = true;
+                if (checkContextObject)
+                    hasContextObject1 = false;
+                IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, ref exceptionInfo);
+
+                hasContextObject = hasContextObject | hasContextObject1;
+                if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;
+                if (itemsAmount == null)
                 {
-                    if (_AmountInAsm.Keys.Count == 0)
-                    {
-                        foreach (var rel in RelationsWithParent)
-                        {
-                            if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/)).ObjectTypeID)
-                            {
-                                _AmountInAsm.Add(rel, rel.Amount);
-                                return _AmountInAsm;
-                            }
-
-                            if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID)
-                                _AmountInAsm.Add(rel, rel.Amount);
-                            else
-                            {
-                                var nextAsms = rel.Parent.AmountInAsm;
-                                foreach (var na in nextAsms)
-                                {
-                                    _AmountInAsm[na.Key] = rel.Amount;
-                                }
-                            }
-                        }
-                    }
-                    return _AmountInAsm;
+                    continue;
                 }
-            }
 
-            //   public MeasuredValue Amount;
-            /// <summary>
-            /// Связи с дочерними объектами
-            /// </summary>
-            public List<Relation> RelationsWithChild = new List<Relation>();
-
-            /// <summary>
-            /// Связи с родительскими объектами
-            /// </summary>
-            public List<Relation> RelationsWithParent = new List<Relation>();
-
-            public bool HasEmptyAmount = false;
-
-            private Dictionary<Relation, MeasuredValue> _AmountInAsm = new Dictionary<Relation, MeasuredValue>();
-
-            public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
-            {
-                MeasuredValue measuredValue = null;
-                IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
-                if (this.isContextObject) hasContextObject = true;
-
-                if (exceptionInfo == null)
-                    exceptionInfo = new Tuple<string, string>(this.Caption, string.Empty);
-
-                foreach (Relation relation in RelationsWithParent)
+                foreach (var itemAmount in itemsAmount)
                 {
-                    bool hasContextObject1 = true;
-                    if (checkContextObject)
-                        hasContextObject1 = false;
-                    IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, ref exceptionInfo);
-
-                    hasContextObject = hasContextObject | hasContextObject1;
-                    if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;
-                    if (itemsAmount == null)
+                    if (!result.TryGetValue(itemAmount.Key, out measuredValue))
                     {
+                        result[itemAmount.Key] = itemAmount.Value.Clone() as MeasuredValue;
                         continue;
                     }
 
-                    foreach (var itemAmount in itemsAmount)
+                    try
                     {
-                        if (!result.TryGetValue(itemAmount.Key, out measuredValue))
-                        {
-                            result[itemAmount.Key] = itemAmount.Value.Clone() as MeasuredValue;
-                            continue;
-                        }
-
-                        try
-                        {
-                            measuredValue.Add(itemAmount.Value);
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptionInfo = new Tuple<string, string>(this.Caption, ex.Message);
-                            return null;
-                        }
+                        measuredValue.Add(itemAmount.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptionInfo = new Tuple<string, string>(this.Caption, ex.Message);
+                        return null;
                     }
                 }
-
-                return result;
             }
 
-            /// <summary>
-            /// Если MaterialId == 0 вернет ObjectId, в противном случае -- MaterialId.
-            /// </summary>
-            /// <returns></returns>
-            public long GetKey()
-            {
-                return this.MaterialId != 0
-                ? this.MaterialId
-                : this.ObjectId;
-            }
-
+            return result;
         }
-        
+
         /// <summary>
-        /// Составной материал
+        /// Если MaterialId == 0 вернет ObjectId, в противном случае -- MaterialId.
         /// </summary>
-        private class ComplexMaterialItem : Item
+        /// <returns></returns>
+        public long GetKey()
         {
-            public MeasuredValue MainComponentAmount;
-            public MeasuredValue Component1Amount;
-            public MeasuredValue Component2Amount;
-
+            return this.MaterialId != 0
+            ? this.MaterialId
+            : this.ObjectId;
         }
+    }
 
-        private class MaterialItem : Item
+    /// <summary>
+    /// Составной материал
+    /// </summary>
+    public class ComplexMaterialItem : Item
+    {
+        public MeasuredValue MainComponentAmount;
+        public MeasuredValue Component1Amount;
+        public MeasuredValue Component2Amount;
+    }
+
+    public class MaterialItem : Item
+    {
+        public ComplexMaterialComponent ComplexMaterialComponentValue = ComplexMaterialComponent.Empty;
+
+        public enum ComplexMaterialComponent
         {
-            public ComplexMaterialComponent ComplexMaterialComponentValue = ComplexMaterialComponent.Empty;
-            public enum ComplexMaterialComponent
-            {
-                Component1 = 1,
-                Component2 = 2,
-                ComponentMain = 3,
-                Empty = 4
-            };
-
-        }
+            Component1 = 1,
+            Component2 = 2,
+            ComponentMain = 3,
+            Empty = 4
+        };
     }
 }
