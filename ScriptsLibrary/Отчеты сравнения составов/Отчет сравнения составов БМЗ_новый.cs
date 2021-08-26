@@ -34,6 +34,9 @@ namespace EcoDiffReport
         {
             Report sc = new Report();
             sc.Run(session, document, objectIDs);
+
+            document.UpdateLayout(true);
+
             return new ScriptResult(true, document);
         }
     }
@@ -41,7 +44,9 @@ namespace EcoDiffReport
     public class Report
     {
         //режим расширенного отчета
-        private bool compliteReport = true;
+        public bool compliteReport = true;
+
+        public bool writeLog = false;
 
         private string _userError = string.Empty;
         private string _adminError = string.Empty;
@@ -207,12 +212,12 @@ namespace EcoDiffReport
                 itemsDict_byLinkId[linkId] = item;
             }
 
-            bool isDopZamen = false;
-            object dopZamenValue = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
-            if (dopZamenValue != DBNull.Value)
-            {
-                isDopZamen = Convert.ToInt32(dopZamenValue) != 0;
-            }
+            //bool isDopZamen = false;
+            //object dopZamenValue = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
+            //if (dopZamenValue != DBNull.Value)
+            //{
+            //    isDopZamen = Convert.ToInt32(dopZamenValue) != 0;
+            //}
 
             object isPocupValue = row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/];
             if (isPocupValue != DBNull.Value)
@@ -339,7 +344,7 @@ namespace EcoDiffReport
                             break;
 
                         var associatedItem_rwp = associatedComplectUnit.RelationsWithParent
-                            .FirstOrDefault(e => e.Child.Caption == associatedComplectUnit.Caption)
+                            .FirstOrDefault(e => e.Child.Caption == associatedComplectUnit.Caption);
 
                         item_rwp.Amount = associatedItem_rwp != null ? associatedItem_rwp.Amount : item_rwp.Amount;
                     }
