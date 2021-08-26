@@ -30,8 +30,8 @@ namespace EcoDiffReport
 
         public ScriptResult Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
         {
-            Report sc = new Report();
-            sc.Run(session, document, objectIDs);
+            Report report = new Report();
+            report.Run(session, document, objectIDs);
 
             document.UpdateLayout(true);
 
@@ -45,6 +45,7 @@ namespace EcoDiffReport
         public bool compliteReport = true;
 
         public bool writeLog = false;
+        public bool writeTestingData = true;
 
         private string _userError = string.Empty;
         private string _adminError = string.Empty;
@@ -222,7 +223,7 @@ namespace EcoDiffReport
             object isPocupValue = row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/];
             if (isPocupValue != DBNull.Value)
             {
-                item.isPocup = Convert.ToInt32(isPocupValue) != 1;
+                item.isPurchased = Convert.ToInt32(isPocupValue) != 1;
             }
 
             object matCode = row["120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/];
@@ -443,11 +444,18 @@ namespace EcoDiffReport
             _asm = objectIDs[0];
             _eco = session.EditingContextID;
             document.Designation = "Отчет сравнения составов";
+
             if (System.Diagnostics.Debugger.IsAttached)
                 System.Diagnostics.Debugger.Break();
-            string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
-            if (System.IO.File.Exists(file))
-                System.IO.File.Delete(file);
+
+            string logFile = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
+            if (System.IO.File.Exists(logFile))
+                System.IO.File.Delete(logFile);
+
+            string testFile = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\testData.txt";
+            if (System.IO.File.Exists(testFile))
+                System.IO.File.Delete(testFile);
+
             //AddToLog("Запускаем скрипт v 4.0");
             _zagotType = MetaDataHelper.GetObjectTypeID("cad001da-306c-11d8-b4e9-00304f19f545" /*Заготовка*/);
             _asmUnitType = MetaDataHelper.GetObjectTypeID("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/);
@@ -484,6 +492,7 @@ namespace EcoDiffReport
             IDBObject asmObj = session.GetObject(_asm, false);
             if (ecoObj != null)
             {
+
                 var attr = ecoObj.GetAttributeByGuid(new Guid(Intermech.SystemGUIDs.attributeDesignation), false);
                 if (attr != null)
                     document.DocumentName = attr.AsString;
@@ -493,6 +502,11 @@ namespace EcoDiffReport
                     document.DocumentName += "__" + attr.AsString;
 
                 ecoObjCaption = ecoObj.Caption;
+            }
+            else
+            {
+                MessageBox.Show("Не выбран контекст редактирования.", "Ошибка формирования отчета сравнения составов (было-стало)", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
 
             document.Designation += " " + DateTime.Now.ToString("dd.MM.yyyy, HH:mm:ss");
@@ -673,10 +687,10 @@ namespace EcoDiffReport
                 Material mat = new Material();
                 mat.MaterialId = baseItem.MaterialId;
                 mat.MaterialCaption = baseItem.Caption;
-                mat.type = baseItem.ObjectType;
-                mat.linkToObj = baseItem.LinkToObjId;
+                mat.Type = baseItem.ObjectType;
+                mat.LinkToObj = baseItem.LinkToObjId;
                 mat.MaterialCode = baseItem.MaterialCode;
-                mat.isPurchased = baseItem.isPocup;
+                mat.isPurchased = baseItem.isPurchased;
                 //AddToLog("item0 " + baseItem.ToString());
                 //добавляем базовый состав в результат
                 resultComposition.Add(mat);
@@ -761,10 +775,10 @@ namespace EcoDiffReport
                 Material mat = new Material();
                 mat.MaterialId = item.MaterialId;
                 mat.MaterialCaption = item.Caption;
-                mat.type = item.ObjectType;
-                mat.linkToObj = item.LinkToObjId;
+                mat.Type = item.ObjectType;
+                mat.LinkToObj = item.LinkToObjId;
                 mat.MaterialCode = item.MaterialCode;
-                mat.isPurchased = item.isPocup;
+                mat.isPurchased = item.isPurchased;
                 resultComposition.Add(mat);
 
                 mat.HasEmptyAmount2 = item.HasEmptyAmount;
@@ -799,15 +813,17 @@ namespace EcoDiffReport
 
             resultComposition = resultComposition.Where(e => e.Amount1 != e.Amount2).ToList();
 
-            var zagotMaterials = resultComposition.Where(e => e.type == _zagotType)
+            var zagotMaterials = resultComposition.Where(e => e.Type == _zagotType)
                 .Select(e => e.MaterialId)
                 .ToList();
 
             List<long> resultCompIds_notZerRef = resultComposition
-                .Select(e => e.linkToObj)
+                .Select(e => e.LinkToObj)
                 .Where(e => e > 0)
                 .Distinct()
                 .ToList();
+
+            #endregion Итоговый состав материалов
 
             #region Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
@@ -871,7 +887,7 @@ namespace EcoDiffReport
                         isPurchased = Convert.ToInt32(row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/]) != 1 ? true : false;
                     }
 
-                    var materials = resultComposition.Where(x => x.linkToObj == id);
+                    var materials = resultComposition.Where(x => x.LinkToObj == id);
                     foreach (var mat in materials)
                     {
                         if (mat != null && isPurchased)
@@ -960,36 +976,6 @@ namespace EcoDiffReport
 
             #endregion Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
-            #endregion Итоговый состав материалов
-
-            #region Формирование отчета
-
-            // Заполнение шапки
-            //AddToLog("fill header");
-            DocumentTreeNode headerNode = document.Template.FindNode("Шапка");
-            if (headerNode != null)
-            {
-                TextData textData = headerNode.FindNode("Извещение") as TextData;
-                if (textData != null)
-                {
-                    textData.AssignText(ecoObjCaption, false, false, false);
-                }
-
-                textData = headerNode.FindNode("ДСЕ") as TextData;
-                if (textData != null)
-                {
-                    textData.AssignText(headerObjCaption, false, false, false);
-                }
-            }
-
-            DocumentTreeNode docrow = document.Template.FindNode("Строка");
-            DocumentTreeNode table = document.FindNode("Таблица");
-            DocumentTreeNode doccol2 = document.Template.FindNode("Столбец2");
-            DocumentTreeNode docrow2 = document.Template.FindNode("Строка2");
-
-            int N = 0;
-            int totalIndex = 0;
-            int rowIndex = 0;
             List<Material> reportComp = new List<Material>();
 
             foreach (var item in resultComposition_tech)
@@ -1000,7 +986,7 @@ namespace EcoDiffReport
                     //когда есть повторение позиции, объединяем с уже записанной
                     foreach (var repItem in reportComp)
                     {
-                        if (repItem.MaterialCaption == item.MaterialCaption && repItem.type == item.type)
+                        if (repItem.MaterialCaption == item.MaterialCaption && repItem.Type == item.Type)
                             repeatItem = repItem;
                     }
 
@@ -1011,205 +997,59 @@ namespace EcoDiffReport
                 }
             }
 
-            reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption) > 1 && e.type != _complectUnitType);
+            reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption) > 1
+            && e.Type != MetaDataHelper.GetObjectTypeID("cad00166-306c-11d8-b4e9-00304f19f545" /*Комплектующая единица*/));
 
-            foreach (var item in reportComp.OrderBy(e => e.MaterialCaption))
+            foreach (var item in reportComp)
             {
-                //AddToLog("createnode " + item.ToString());
-                DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
-                if (compliteReport)
+                //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
+                var keys1 = item.EntersInAsm1.Keys.ToList();
+                foreach (var key in keys1)
                 {
-                    //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
-                    var keys1 = item.EntersInAsm1.Keys.ToList();
-                    foreach (var key in keys1)
+                    Tuple<MeasuredValue, MeasuredValue> value = null;
+                    if (item.EntersInAsm2.TryGetValue(key, out value))
                     {
-                        Tuple<MeasuredValue, MeasuredValue> value = null;
-                        if (item.EntersInAsm2.TryGetValue(key, out value))
+                        if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
                         {
-                            if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
-                            {
-                                item.EntersInAsm1.Remove(key);
-                                item.EntersInAsm2.Remove(key);
-                                continue;
-                            }
-                            if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
-                            {
-                                item.EntersInAsm1.Remove(key);
-                                item.EntersInAsm2.Remove(key);
-                            }
+                            item.EntersInAsm1.Remove(key);
+                            item.EntersInAsm2.Remove(key);
+                            continue;
+                        }
+                        if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
+                        {
+                            item.EntersInAsm1.Remove(key);
+                            item.EntersInAsm2.Remove(key);
                         }
                     }
-                    item.EntersInAsm1 = item.EntersInAsm1.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
-                    item.EntersInAsm2 = item.EntersInAsm2.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
-
-                    #region Запись "было"
-
-                    if (item.EntersInAsm1.Count > 0 || item.EntersInAsm2.Count > 0)
-                    {
-                        N++;
-                        totalIndex++;
-
-                        rowIndex++;
-                        table.AddChildNode(node, false, false);
-
-                        Write(node, "Индекс", N.ToString());
-                        Write(node, "Код", item.MaterialCode);
-                        Write(node, "Материал", item.MaterialCaption);
-
-                        if (item.Amount1 != 0 || !item.HasEmptyAmount1)
-                        {
-                            Write(node, "Всего", Math.Round(item.Amount1, 3).ToString() + " " + item.EdIzm);
-
-                            if (N == 1)
-                            {
-                                DocumentTreeNode row2 = node.FindNode("Строка2");
-                                if (item.EntersInAsm1.Count != 0)
-                                {
-                                    WriteFirstAfterParent(row2, "Куда входит", item.EntersInAsm1.First().Key);
-                                    WriteFirstAfterParent(row2, "Количество вхождений", item.EntersInAsm1.First().Value.Item1.Caption);
-                                    WriteFirstAfterParent(row2, "Количество сборок", item.EntersInAsm1.First().Value.Item2.Caption);
-                                }
-
-                                for (int j = 1; j < item.EntersInAsm1.Count; j++)
-                                {
-                                    DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
-                                    DocumentTreeNode col2 = node.FindNode("Столбец2");
-
-                                    totalIndex++;
-                                    col2.AddChildNode(node2, false, false);
-                                    WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm1.Keys.ToList()[j]);
-                                    WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item1.Caption);
-                                    WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item2.Caption);
-                                }
-                            }
-
-                            if (N > 1)
-                            {
-                                DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
-                                if (item.EntersInAsm1.Count != 0)
-                                {
-                                    WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm1.First().Key);
-                                    WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm1.First().Value.Item1.Caption);
-                                    WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm1.First().Value.Item2.Caption);
-                                }
-
-                                for (int j = 1; j < item.EntersInAsm1.Count; j++)
-                                {
-                                    DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
-                                    DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
-
-                                    totalIndex++;
-                                    col2.AddChildNode(node2, false, false);
-                                    WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm1.Keys.ToList()[j]);
-                                    WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item1.Caption);
-                                    WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item2.Caption);
-                                }
-                            }
-                        }
-                    }
-
-                    #endregion Запись "было"
-
-                    #region Запись "стало"
-
-                    if (item.EntersInAsm1.Count > 0 || item.EntersInAsm2.Count > 0)
-                    {
-                        totalIndex++;
-                        rowIndex++;
-                        node = docrow.CloneFromTemplate(true, true);
-
-                        table.AddChildNode(node, false, false);
-
-                        if (item.Amount2 != 0 || !item.HasEmptyAmount2)
-                        {
-                            Write(node, "Всего", Math.Round(item.Amount2, 3).ToString() + " " + item.EdIzm);
-
-                            DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
-                            DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
-                            if (item.EntersInAsm2.Count != 0)
-                            {
-                                WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm2.First().Key);
-                                WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm2.First().Value.Item1.Caption);
-                                WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm2.First().Value.Item2.Caption);
-                            }
-
-                            for (int j = 1; j < item.EntersInAsm2.Count; j++)
-                            {
-                                DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
-                                col2.AddChildNode(node2, false, false);
-                                totalIndex++;
-                                WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm2.Keys.ToList()[j]);
-                                WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm2.Values.ToList()[j].Item1.Caption);
-                                WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm2.Values.ToList()[j].Item2.Caption);
-                            }
-                        }
-                    }
-
-                    #endregion Запись "стало"
                 }
-                else
+                item.EntersInAsm1 = item.EntersInAsm1.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
+                item.EntersInAsm2 = item.EntersInAsm2.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
+            }
+
+            if (writeTestingData)
+            {
+                foreach (var item in reportComp)
                 {
-                    N++;
-                    table.AddChildNode(node, false, false);
-
-                    Write(node, "Индекс", N.ToString());
-                    Write(node, "ДМТО", item.MaterialDMTO);
-
-                    Write(node, "Код", item.MaterialCode);
-                    Write(node, "Материал", item.MaterialCaption);
-                    if (item.Amount1 != 0 || !item.HasEmptyAmount1)
-                        Write(node, "Было", Convert.ToString(Math.Round(item.Amount1, 3)));
-                    else
-                        Write(node, "Было", "-");
-                    if (item.Amount2 != 0 || !item.HasEmptyAmount2)
-                        Write(node, "Будет", Convert.ToString(Math.Round(item.Amount2, 3)));
-                    else
-                        Write(node, "Будет", "-");
-                    var diff = Math.Round(item.Amount2 - item.Amount1, 3);
-                    Write(node, "Разница", Convert.ToString(diff)/*Convert.ToString(item.Amount2 - item.Amount1)*/);
-                    Write(node, "ЕдИзм", item.EdIzm);
-                }
-
-                if (item.HasEmptyAmount1 || item.HasEmptyAmount2)
-                {
-                    (node as RectangleElement).AssignLeftBorderLine(
-                    new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                    (node as RectangleElement).AssignRightBorderLine(
-                    new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                    (node as RectangleElement).AssignTopBorderLine(
-                    new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                    (node as RectangleElement).AssignBottomBorderLine(
-                    new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                    //AddToLog("item.HasEmptyAmount  " + item.ToString());
-                    foreach (DocumentTreeNode child in node.Nodes)
+                    AddToTestingData("field " + item.ToString(), testFile);
+                    foreach (var asm in item.EntersInAsm1)
                     {
-                        (child as RectangleElement).AssignLeftBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (child as RectangleElement).AssignRightBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (child as RectangleElement).AssignTopBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (child as RectangleElement).AssignBottomBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        if (child is TextData)
-                        {
-                            //AddToLog("child  id = " + child.Id);
-                            if ((child as TextData).CharFormat != null)
-                            {
-                                CharFormat cf = (child as TextData).CharFormat.Clone();
-                                cf.TextColor = Color.Red;
-                                cf.CharStyle = CharStyle.Bold;
-                                //AddToLog("SetCharFormat");
-                                (child as TextData).SetCharFormat(cf, false, false);
-                            }
-                            else
-                            {
-                                //AddToLog("(child as TextData).CharFormat == null");
-                            }
-                        }
+                        AddToTestingData(string.Format("asm1 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()), testFile);
                     }
+                    foreach (var asm in item.EntersInAsm2)
+                    {
+                        AddToTestingData(string.Format("asm2 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()), testFile);
+                    }
+                    AddToTestingData("\n", testFile);
                 }
             }
+
+
+            #region Формирование отчета
+
+            // Заполнение шапки
+            //AddToLog("fill header");
+            ReportWriter reportWriter = new ReportWriter(document, resultComposition_tech, ecoObjCaption, headerObjCaption, compliteReport);
+            reportWriter.WriteReport();
 
             //AddToLog("Завершили создание отчета ");
 
@@ -1227,6 +1067,12 @@ namespace EcoDiffReport
             return true;
         }
 
+        public void AddToTestingData(string text, string file)
+        {
+            text = text + Environment.NewLine;
+            System.IO.File.AppendAllText(file, text);
+        }
+
         public void AddToLog(string text)
         {
             string file = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\script.log";
@@ -1235,25 +1081,247 @@ namespace EcoDiffReport
             //AddToOutputView(text);
         }
 
-        private DocumentTreeNode AddNode(DocumentTreeNode childNode, string value)
+        private class ReportWriter
         {
-            DocumentTreeNode node = childNode.GetDocTreeRoot().Template.FindNode(value).CloneFromTemplate(true, true);
-            childNode.AddChildNode(node, false, false);
-            return node;
-        }
+            private ImDocumentData _document;
+            private string _ecoCaption;
+            private string _asmCaption;
+            private List<Material> _resultComposition;
+            private bool _compliteReport;
 
-        private void Write(DocumentTreeNode parent, string tplid, string text)
-        {
-            TextData td = parent.FindFirstNodeFromTemplate_Recursive(tplid) as TextData;
-            if (td != null)
-                td.AssignText(text, false, false, false);
-        }
+            public ReportWriter(ImDocumentData document, List<Material> resultComposition, string ecoCaption, string asmCaption, bool completeReport)
+            {
+                _document = document;
+                _ecoCaption = ecoCaption;
+                _asmCaption = asmCaption;
+                _compliteReport = completeReport;
+                _resultComposition = resultComposition;
+            }
 
-        private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text)
-        {
-            TextData td = parent.FindNode(tplid) as TextData;
-            if (td != null)
-                td.AssignText(text, false, false, false);
+            public void WriteReport()
+            {
+                DocumentTreeNode headerNode = _document.Template.FindNode("Шапка");
+                if (headerNode != null)
+                {
+                    TextData textData = headerNode.FindNode("Извещение") as TextData;
+                    if (textData != null)
+                    {
+                        textData.AssignText(_ecoCaption, false, false, false);
+                    }
+
+                    textData = headerNode.FindNode("ДСЕ") as TextData;
+                    if (textData != null)
+                    {
+                        textData.AssignText(_asmCaption, false, false, false);
+                    }
+                }
+
+                DocumentTreeNode docrow = _document.Template.FindNode("Строка");
+                DocumentTreeNode table = _document.FindNode("Таблица");
+                DocumentTreeNode doccol2 = _document.Template.FindNode("Столбец2");
+                DocumentTreeNode docrow2 = _document.Template.FindNode("Строка2");
+
+                int N = 0;
+                int totalIndex = 0;
+                int rowIndex = 0;
+
+                foreach (var item in _resultComposition.OrderBy(e => e.MaterialCaption))
+                {
+                    //AddToLog("createnode " + item.ToString());
+                    DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
+                    if (_compliteReport)
+                    {
+
+                        #region Запись "было"
+
+                        if (item.EntersInAsm1.Count > 0 || item.EntersInAsm2.Count > 0)
+                        {
+                            N++;
+                            totalIndex++;
+
+                            rowIndex++;
+                            table.AddChildNode(node, false, false);
+
+                            Write(node, "Индекс", N.ToString());
+                            Write(node, "Код", item.MaterialCode);
+                            Write(node, "Материал", item.MaterialCaption);
+
+                            if (item.Amount1 != 0 || !item.HasEmptyAmount1)
+                            {
+                                Write(node, "Всего", Math.Round(item.Amount1, 3).ToString() + " " + item.EdIzm);
+
+                                if (N == 1)
+                                {
+                                    DocumentTreeNode row2 = node.FindNode("Строка2");
+                                    if (item.EntersInAsm1.Count != 0)
+                                    {
+                                        WriteFirstAfterParent(row2, "Куда входит", item.EntersInAsm1.First().Key);
+                                        WriteFirstAfterParent(row2, "Количество вхождений", item.EntersInAsm1.First().Value.Item1.Caption);
+                                        WriteFirstAfterParent(row2, "Количество сборок", item.EntersInAsm1.First().Value.Item2.Caption);
+                                    }
+
+                                    for (int j = 1; j < item.EntersInAsm1.Count; j++)
+                                    {
+                                        DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
+                                        DocumentTreeNode col2 = node.FindNode("Столбец2");
+
+                                        totalIndex++;
+                                        col2.AddChildNode(node2, false, false);
+                                        WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm1.Keys.ToList()[j]);
+                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item1.Caption);
+                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item2.Caption);
+                                    }
+                                }
+
+                                if (N > 1)
+                                {
+                                    DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
+                                    if (item.EntersInAsm1.Count != 0)
+                                    {
+                                        WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm1.First().Key);
+                                        WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm1.First().Value.Item1.Caption);
+                                        WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm1.First().Value.Item2.Caption);
+                                    }
+
+                                    for (int j = 1; j < item.EntersInAsm1.Count; j++)
+                                    {
+                                        DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
+                                        DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
+
+                                        totalIndex++;
+                                        col2.AddChildNode(node2, false, false);
+                                        WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm1.Keys.ToList()[j]);
+                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item1.Caption);
+                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm1.Values.ToList()[j].Item2.Caption);
+                                    }
+                                }
+                            }
+                        }
+
+                        #endregion Запись "было"
+
+                        #region Запись "стало"
+
+                        if (item.EntersInAsm1.Count > 0 || item.EntersInAsm2.Count > 0)
+                        {
+                            totalIndex++;
+                            rowIndex++;
+                            node = docrow.CloneFromTemplate(true, true);
+
+                            table.AddChildNode(node, false, false);
+
+                            if (item.Amount2 != 0 || !item.HasEmptyAmount2)
+                            {
+                                Write(node, "Всего", Math.Round(item.Amount2, 3).ToString() + " " + item.EdIzm);
+
+                                DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
+                                DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
+                                if (item.EntersInAsm2.Count != 0)
+                                {
+                                    WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm2.First().Key);
+                                    WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm2.First().Value.Item1.Caption);
+                                    WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm2.First().Value.Item2.Caption);
+                                }
+
+                                for (int j = 1; j < item.EntersInAsm2.Count; j++)
+                                {
+                                    DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
+                                    col2.AddChildNode(node2, false, false);
+                                    totalIndex++;
+                                    WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.EntersInAsm2.Keys.ToList()[j]);
+                                    WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.EntersInAsm2.Values.ToList()[j].Item1.Caption);
+                                    WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.EntersInAsm2.Values.ToList()[j].Item2.Caption);
+                                }
+                            }
+                        }
+
+                        #endregion Запись "стало"
+                    }
+                    else
+                    {
+                        N++;
+                        table.AddChildNode(node, false, false);
+
+                        Write(node, "Индекс", N.ToString());
+                        Write(node, "ДМТО", item.MaterialDMTO);
+
+                        Write(node, "Код", item.MaterialCode);
+                        Write(node, "Материал", item.MaterialCaption);
+                        if (item.Amount1 != 0 || !item.HasEmptyAmount1)
+                            Write(node, "Было", Convert.ToString(Math.Round(item.Amount1, 3)));
+                        else
+                            Write(node, "Было", "-");
+                        if (item.Amount2 != 0 || !item.HasEmptyAmount2)
+                            Write(node, "Будет", Convert.ToString(Math.Round(item.Amount2, 3)));
+                        else
+                            Write(node, "Будет", "-");
+                        var diff = Math.Round(item.Amount2 - item.Amount1, 3);
+                        Write(node, "Разница", Convert.ToString(diff)/*Convert.ToString(item.Amount2 - item.Amount1)*/);
+                        Write(node, "ЕдИзм", item.EdIzm);
+                    }
+
+                    if (item.HasEmptyAmount1 || item.HasEmptyAmount2)
+                    {
+                        (node as RectangleElement).AssignLeftBorderLine(
+                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                        (node as RectangleElement).AssignRightBorderLine(
+                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                        (node as RectangleElement).AssignTopBorderLine(
+                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                        (node as RectangleElement).AssignBottomBorderLine(
+                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                        //AddToLog("item.HasEmptyAmount  " + item.ToString());
+                        foreach (DocumentTreeNode child in node.Nodes)
+                        {
+                            (child as RectangleElement).AssignLeftBorderLine(
+                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                            (child as RectangleElement).AssignRightBorderLine(
+                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                            (child as RectangleElement).AssignTopBorderLine(
+                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                            (child as RectangleElement).AssignBottomBorderLine(
+                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
+                            if (child is TextData)
+                            {
+                                //AddToLog("child  id = " + child.Id);
+                                if ((child as TextData).CharFormat != null)
+                                {
+                                    CharFormat cf = (child as TextData).CharFormat.Clone();
+                                    cf.TextColor = Color.Red;
+                                    cf.CharStyle = CharStyle.Bold;
+                                    //AddToLog("SetCharFormat");
+                                    (child as TextData).SetCharFormat(cf, false, false);
+                                }
+                                else
+                                {
+                                    //AddToLog("(child as TextData).CharFormat == null");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            private DocumentTreeNode AddNode(DocumentTreeNode childNode, string value)
+            {
+                DocumentTreeNode node = childNode.GetDocTreeRoot().Template.FindNode(value).CloneFromTemplate(true, true);
+                childNode.AddChildNode(node, false, false);
+                return node;
+            }
+
+            private void Write(DocumentTreeNode parent, string tplid, string text)
+            {
+                TextData td = parent.FindFirstNodeFromTemplate_Recursive(tplid) as TextData;
+                if (td != null)
+                    td.AssignText(text, false, false, false);
+            }
+
+            private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text)
+            {
+                TextData td = parent.FindNode(tplid) as TextData;
+                if (td != null)
+                    td.AssignText(text, false, false, false);
+            }
         }
 
         private class Material
@@ -1265,8 +1333,8 @@ namespace EcoDiffReport
             public long MaterialId;
             public string MaterialCaption;
             public string MaterialDMTO;
-            public int type;
-            public long linkToObj;
+            public int Type;
+            public long LinkToObj;
 
             /// <summary>
             /// Код АМТО
@@ -1348,7 +1416,7 @@ namespace EcoDiffReport
 
             public override string ToString()
             {
-                return string.Format("MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; Amount1={3}; Amount2={4};",
+                return string.Format("MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; Amount1={3}; Amount2={4}",
                 MaterialId, MaterialCode, MaterialCaption, Amount1, Amount2);
             }
         }
@@ -1496,12 +1564,12 @@ namespace EcoDiffReport
             clone.RelationsWithChild = RelationsWithChild;
             clone._AmountInAsm = _AmountInAsm;
             clone.LinkToObjId = LinkToObjId;
-            clone.isPocup = isPocup;
+            clone.isPurchased = isPurchased;
             return clone;
         }
 
         public bool isContextObject = false;
-        public bool isPocup = false;
+        public bool isPurchased = false;
         public MeasuredValue AmountSum;
         public long MaterialId;
         public string MaterialCode;

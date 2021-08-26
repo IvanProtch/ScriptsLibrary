@@ -1,64 +1,106 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
-  <Class Name="EcoDiffReport2.Script" Collapsed="true">
-    <Position X="13.25" Y="1" Width="1.5" />
+  <Class Name="EcoDiffReport.Script">
+    <Position X="8" Y="6" Width="2.25" />
     <TypeIdentifier>
       <HashCode>AAEAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый_вариант2.cs</FileName>
-      <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
+      <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="EcoDiffReport2.Report">
-    <Position X="14.25" Y="4" Width="1.5" />
+  <Class Name="EcoDiffReport.Report">
+    <Position X="12.25" Y="1" Width="4" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
     <NestedTypes>
-      <Class Name="EcoDiffReport2.Report.Material" Collapsed="true">
+      <Class Name="EcoDiffReport.Report.Material">
+        <TypeIdentifier>
+          <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="EcoDiffReport.Report.ReportWriter">
         <TypeIdentifier>
           <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
         </TypeIdentifier>
       </Class>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>EAAAAEAgAQBAAABKApAQAAHAIAAACAAAAAEAAAEIAAI=</HashCode>
-      <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый_вариант2.cs</FileName>
-      <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
+      <HashCode>EAAAAEAgAQJAAEBKApQQAAFQIAAACAAAAAAAAAAIAAI=</HashCode>
+      <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
-  </Class>
-  <Class Name="EcoDiffReport2.Composition" BaseTypeListCollapsed="true">
-    <Position X="21.75" Y="2" Width="3.75" />
-    <TypeIdentifier>
-      <HashCode>UAAAAEAAAQBIAEAKChQACAECAAAADAAgBAAAAAgIAAA=</HashCode>
-      <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый_вариант2.cs</FileName>
-      <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
-    </TypeIdentifier>
-    <Lollipop Position="0.2" Collapsed="true" />
   </Class>
   <Class Name="EcoDiffReport.Relation">
-    <Position X="7.25" Y="2.5" Width="1.5" />
+    <Position X="8" Y="2.5" Width="2.25" />
+    <AssociationLine Name="Child" Type="EcoDiffReport.Item" FixedFromPoint="true">
+      <Path>
+        <Point X="8" Y="4.438" />
+        <Point X="4.25" Y="4.438" />
+      </Path>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AAAAQAAAAAAABIAEAAAASACAAAAgAAAAAIAAAAAAAAA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="Child" />
+      <Field Name="Parent" />
+      <Field Name="Amount" />
+    </ShowAsAssociation>
   </Class>
-  <Class Name="EcoDiffReport.Item" Collapsed="true">
-    <Position X="11" Y="7.25" Width="1.5" />
+  <Class Name="EcoDiffReport.Item">
+    <Position X="2.25" Y="2.5" Width="2" />
+    <AssociationLine Name="AmountInAsm" Type="Intermech.Interfaces.MeasuredValue">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.11" Y="-0.273" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="RelationsWithChild" Type="EcoDiffReport.Relation" FixedFromPoint="true">
+      <Path>
+        <Point X="4.25" Y="4.062" />
+        <Point X="8" Y="4.062" />
+      </Path>
+    </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QAACgAQAgAAABAAEkAQACAQAAABgAAAACIAAABCAABA=</HashCode>
+      <HashCode>QAACgAQAgAAABAAGgAQACAQAAABgAAAACIAAABCAABA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="AmountSum" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="RelationsWithChild" />
+      <Field Name="RelationsWithParent" />
+      <Property Name="AmountInAsm" />
+    </ShowAsCollectionAssociation>
   </Class>
-  <Class Name="EcoDiffReport.ComplexMaterialItem" Collapsed="true">
-    <Position X="11.75" Y="4.25" Width="1.5" />
+  <Class Name="EcoDiffReport.ComplexMaterialItem">
+    <Position X="0.5" Y="8.5" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAIAAAAAAAAAAQAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="EcoDiffReport.MaterialItem" Collapsed="true">
-    <Position X="9.5" Y="4.25" Width="1.5" />
+  <Class Name="EcoDiffReport.MaterialItem">
+    <Position X="4.75" Y="8.5" Width="2.25" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Enum Name="EcoDiffReport.MaterialItem.ComplexMaterialComponent" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
+  </Class>
+  <Class Name="Intermech.Interfaces.MeasuredValue" Collapsed="true">
+    <Position X="5.25" Y="0.75" Width="2.25" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
   </Class>
   <Font Name="Segoe UI" Size="9.75" />
 </ClassDiagram>
