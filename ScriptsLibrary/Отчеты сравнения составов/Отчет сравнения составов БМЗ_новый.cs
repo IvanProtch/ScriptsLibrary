@@ -1030,16 +1030,16 @@ namespace EcoDiffReport
             {
                 foreach (var item in reportComp)
                 {
-                    AddToTestingData("field " + item.ToString(), testFile);
+                    System.IO.File.AppendAllText(testFile, string.Format("material {0}/{1}/{2}", item.MaterialCaption, item.Amount1, item.Amount2));
                     foreach (var asm in item.EntersInAsm1)
                     {
-                        AddToTestingData(string.Format("asm1 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()), testFile);
+                        System.IO.File.AppendAllText(testFile, string.Format(" asm1 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()));
                     }
                     foreach (var asm in item.EntersInAsm2)
                     {
-                        AddToTestingData(string.Format("asm2 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()), testFile);
+                        System.IO.File.AppendAllText(testFile, string.Format(" asm2 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()));
                     }
-                    AddToTestingData("\n", testFile);
+                    System.IO.File.AppendAllText(testFile, "\n");
                 }
             }
 
@@ -1067,11 +1067,6 @@ namespace EcoDiffReport
             return true;
         }
 
-        public void AddToTestingData(string text, string file)
-        {
-            text = text + Environment.NewLine;
-            System.IO.File.AppendAllText(file, text);
-        }
 
         public void AddToLog(string text)
         {
