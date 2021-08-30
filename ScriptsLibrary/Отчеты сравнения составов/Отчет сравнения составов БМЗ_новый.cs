@@ -208,19 +208,20 @@ namespace EcoDiffReport
             }
             itemsDict_byObjId[objectId] = item;
 
+            //для комплектующих единиц записываем группы замен
             if(item.ObjectType == _complectUnitType)
             {
                 object substituteInGroup = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
                 if (substituteInGroup != DBNull.Value)
                 {
-                    item.ReplacementGroup = Convert.ToInt32(substituteInGroup);
+                    int groupNo = Convert.ToInt32(substituteInGroup);
+                    item.isActualReplacement = groupNo == 0;
+                    item.isPossableReplacement = groupNo > 0;
                 }
                 object substitutesGroupNo = row[Intermech.SystemGUIDs.attributeSubstitutesGroupNo];
                 if (substitutesGroupNo != DBNull.Value)
                 {
-                    int groupNo = Convert.ToInt32(substitutesGroupNo);
-                    item.isActualReplacement = groupNo == 0;
-                    item.isPossableReplacement = groupNo > 0;
+                    item.ReplacementGroup = Convert.ToInt32(substitutesGroupNo);
                 }
             }
 
@@ -228,13 +229,6 @@ namespace EcoDiffReport
             {
                 itemsDict_byLinkId[linkId] = item;
             }
-
-            //bool isDopZamen = false;
-            //object dopZamenValue = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
-            //if (dopZamenValue != DBNull.Value)
-            //{
-            //    isDopZamen = Convert.ToInt32(dopZamenValue) != 0;
-            //}
 
             object isPocupValue = row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/];
             if (isPocupValue != DBNull.Value)
@@ -247,11 +241,6 @@ namespace EcoDiffReport
             {
                 item.MaterialCode = Convert.ToString(matCode);
             }
-            //if (isDopZamen)//Допзамены и их состав не считаем
-            //{
-            //    AddToLog("isDopZamen " + lnk.ToString());
-            //    return null;
-            //}
 
             long materialId = item.Id;
 
@@ -866,7 +855,7 @@ namespace EcoDiffReport
                     //с актуальной на допустимую
                     if (item.isActualReplacement1 && item.isPossableReplacement2)
                     {
-                        item.SubstractAmount(growth: false);
+                        item.SubstractAmount(amountIsIncrease: false);
                         var actual = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
                         item.MaterialCaption += actual != null ? string.Format("\nприменяется взамен {0}", actual.Caption) : "";
                     }
@@ -874,7 +863,7 @@ namespace EcoDiffReport
                     //с допустимой на актуальную
                     if (item.isPossableReplacement1 && item.isActualReplacement2)
                     {
-                        item.SubstractAmount(growth: true);
+                        item.SubstractAmount(amountIsIncrease: true);
                         var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
                         item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
                     }
@@ -882,21 +871,20 @@ namespace EcoDiffReport
                     //с основной на допустимую
                     if ((!item.isActualReplacement1 && !item.isPossableReplacement1) && item.isPossableReplacement2)
                     {
-                        item.SubstractAmount(growth: false);
-                        var possable = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
+                        item.SubstractAmount(amountIsIncrease: false);
+                        var actual = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
+                        item.MaterialCaption += actual != null ? string.Format("\nприменяется взамен {0}", actual.Caption) : "";
                     }
 
                     //с допустимой на основную
                     if (item.isPossableReplacement1 && (!item.isActualReplacement2 && !item.isPossableReplacement2))
                     {
-                        item.SubstractAmount(growth: true);
+                        item.SubstractAmount(amountIsIncrease: true);
                     }
 
                     //с основной на актуальную
                     if ((!item.isActualReplacement1 && !item.isPossableReplacement1) && item.isActualReplacement2)
                     {
-                        item.SubstractAmount(growth: true);
                         var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
                         item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
                     }
@@ -904,7 +892,7 @@ namespace EcoDiffReport
                     //с актуальной на основную
                     if (item.isActualReplacement1 && (!item.isActualReplacement2 && !item.isPossableReplacement2))
                     {
-                        item.SubstractAmount(growth: false);
+
                     }
                 }
             }
@@ -1010,7 +998,7 @@ namespace EcoDiffReport
                     //когда есть повторение позиции, объединяем с уже записанной
                     foreach (var repItem in reportComp)
                     {
-                        if (repItem.MaterialCaption == item.MaterialCaption && repItem.Type == item.Type)
+                        if (repItem.MaterialCaption == item.MaterialCaption && repItem.Type == item.Type && repItem.EdIzm == item.EdIzm)
                             repeatItem = repItem;
                     }
 
@@ -1021,8 +1009,7 @@ namespace EcoDiffReport
                 }
             }
 
-            reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption) > 1
-            && e.Type != MetaDataHelper.GetObjectTypeID("cad00166-306c-11d8-b4e9-00304f19f545" /*Комплектующая единица*/));
+            reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption && e.EdIzm == i.EdIzm) > 1);
 
             foreach (var item in reportComp)
             {
@@ -1162,7 +1149,11 @@ namespace EcoDiffReport
 
                             Write(node, "Индекс", N.ToString());
                             Write(node, "Код", item.MaterialCode);
-                            Write(node, "Материал", item.MaterialCaption);
+                            if(item.MaterialCaption.Length != item.Caption.Length)
+                            {
+                                Write(node, "Материал", item.MaterialCaption, new CharFormat("arial", 10, CharStyle.Bold));
+                            }
+                            else Write(node, "Материал", item.MaterialCaption);
 
                             if (item.Amount1 != 0 || !item.HasEmptyAmount1)
                             {
@@ -1329,9 +1320,21 @@ namespace EcoDiffReport
             {
                 TextData td = parent.FindFirstNodeFromTemplate_Recursive(tplid) as TextData;
                 if (td != null)
+                {
                     td.AssignText(text, false, false, false);
+                }
             }
 
+            private void Write(DocumentTreeNode parent, string tplid, string text, CharFormat charFormat = null)
+            {
+                TextData td = parent.FindFirstNodeFromTemplate_Recursive(tplid) as TextData;
+                if (td != null)
+                {
+                    td.SetCharFormat(charFormat == null ? new CharFormat("arial", 10, CharStyle.Regular) : charFormat, true, true);
+                    td.AssignText(text, false, false, false);
+                }
+
+            }
             private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text)
             {
                 TextData td = parent.FindNode(tplid) as TextData;
@@ -1430,9 +1433,9 @@ namespace EcoDiffReport
 
             public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> EntersInAsm2 = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
 
-            public void SubstractAmount(bool growth)
+            public void SubstractAmount(bool amountIsIncrease)
             {
-                if (growth)
+                if (amountIsIncrease)
                 {
                     this.Amount1 -= this.Amount2;
 
