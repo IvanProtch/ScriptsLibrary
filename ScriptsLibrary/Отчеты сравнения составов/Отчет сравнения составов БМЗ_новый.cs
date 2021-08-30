@@ -208,6 +208,22 @@ namespace EcoDiffReport
             }
             itemsDict_byObjId[objectId] = item;
 
+            if(item.ObjectType == _complectUnitType)
+            {
+                object substituteInGroup = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
+                if (substituteInGroup != DBNull.Value)
+                {
+                    item.ReplacementGroup = Convert.ToInt32(substituteInGroup);
+                }
+                object substitutesGroupNo = row[Intermech.SystemGUIDs.attributeSubstitutesGroupNo];
+                if (substitutesGroupNo != DBNull.Value)
+                {
+                    int groupNo = Convert.ToInt32(substitutesGroupNo);
+                    item.isActualReplacement = groupNo == 0;
+                    item.isPossableReplacement = groupNo > 0;
+                }
+            }
+
             if (linkId > 0 && item.ObjectType == _complectUnitType)
             {
                 itemsDict_byLinkId[linkId] = item;
@@ -545,7 +561,7 @@ namespace EcoDiffReport
             bool addBmzFields = true;
 
             #region Инициализация запроса к БД
-
+ 
             List<int> rels = new List<int>();
 
             rels.Add(MetaDataHelper.GetRelationTypeID("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/));
@@ -556,6 +572,14 @@ namespace EcoDiffReport
             int attrId = (Int32)ObligatoryObjectAttributes.CAPTION;
             columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
             ColumnNameMapping.FieldName, SortOrders.NONE, 0));
+
+            attrId = MetaDataHelper.GetAttributeTypeID(new Guid(Intermech.SystemGUIDs.attributeSubstituteInGroup) /*Номер заменителя в группе*/);
+            columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
+            ColumnNameMapping.Guid, SortOrders.NONE, 0));
+
+            attrId = MetaDataHelper.GetAttributeTypeID(new Guid(Intermech.SystemGUIDs.attributeSubstitutesGroupNo) /*Номер группы заменителя*/);
+            columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
+            ColumnNameMapping.Guid, SortOrders.NONE, 0));
 
             attrId = MetaDataHelper.GetAttributeTypeID("cad00267-306c-11d8-b4e9-00304f19f545" /*Количество*/);
             columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
@@ -691,6 +715,11 @@ namespace EcoDiffReport
                 mat.LinkToObj = baseItem.LinkToObjId;
                 mat.MaterialCode = baseItem.MaterialCode;
                 mat.isPurchased = baseItem.isPurchased;
+
+                mat.isActualReplacement1 = baseItem.isActualReplacement;
+                mat.isPossableReplacement1 = baseItem.isPossableReplacement;
+                mat.ReplacementGroup1 = baseItem.ReplacementGroup;
+
                 //AddToLog("item0 " + baseItem.ToString());
                 //добавляем базовый состав в результат
                 resultComposition.Add(mat);
@@ -749,6 +778,10 @@ namespace EcoDiffReport
                     //AddToLog("item02 " + ecoItem.ToString());
                     if (ecoItem.AmountSum != null)
                     {
+                        mat.isActualReplacement2 = ecoItem.isActualReplacement;
+                        mat.isPossableReplacement2 = ecoItem.isPossableReplacement;
+                        mat.ReplacementGroup2 = ecoItem.ReplacementGroup;
+
                         //AddToLog("item2.AmountSum != null");
                         mat.Amount2 = MeasureHelper.ConvertToMeasuredValue(ecoItem.AmountSum, mat.MeasureId).Value;
 
@@ -779,6 +812,11 @@ namespace EcoDiffReport
                 mat.LinkToObj = item.LinkToObjId;
                 mat.MaterialCode = item.MaterialCode;
                 mat.isPurchased = item.isPurchased;
+
+                mat.isActualReplacement2 = item.isActualReplacement;
+                mat.isPossableReplacement2 = item.isPossableReplacement;
+                mat.ReplacementGroup2 = item.ReplacementGroup;
+
                 resultComposition.Add(mat);
 
                 mat.HasEmptyAmount2 = item.HasEmptyAmount;
@@ -811,7 +849,59 @@ namespace EcoDiffReport
                 //AddToLog("mat2 " + mat.ToString());
             }
 
-            resultComposition = resultComposition.Where(e => e.Amount1 != e.Amount2).ToList();
+            resultComposition = resultComposition
+                .Where(e => (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
+                .ToList();
+
+            foreach (var item in resultComposition)
+            {
+                if(item.ReplacementGroupIsChanged || item.ReplacementStatusIsChanged)
+                {
+                    //с актуальной на допустимую
+                    if(item.isActualReplacement1 && item.isPossableReplacement2)
+                    {
+                        item.SubstractAmount(true);
+                        var actual = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
+                        item.MaterialCaption += string.Format("\nприменяется взамен {0}", actual.MaterialCaption);
+                    }
+
+                    //с допустимой на актуальную
+                    if (item.isPossableReplacement1 && item.isActualReplacement2)
+                    {
+                        item.SubstractAmount(false);
+                        var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
+                        item.MaterialCaption += string.Format("\nдопускается замена на {0}", possable.MaterialCaption);
+                    }
+
+                    //с основной на допустимую
+                    if (!(item.isActualReplacement1 && item.isPossableReplacement1) && item.isPossableReplacement2)
+                    {
+                        item.SubstractAmount(false);
+                        var possable = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
+                        item.MaterialCaption += string.Format("\nдопускается замена на {0}", possable.MaterialCaption);
+                    }
+                    
+                    //с допустимой на основную
+                    if (item.isPossableReplacement1 && !(item.isActualReplacement2 && item.isPossableReplacement2))
+                    {
+                        item.SubstractAmount(true);
+                    }
+
+                    //с основной на актуальную
+                    if (!(item.isActualReplacement1 && item.isPossableReplacement1) && item.isActualReplacement2)
+                    {
+                        item.SubstractAmount(false);
+                        var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
+                        item.MaterialCaption += string.Format("\nдопускается замена на {0}", possable.MaterialCaption);
+                    }
+
+                    //с актуальной на основную
+                    if (item.isActualReplacement1 && !(item.isActualReplacement2 && item.isPossableReplacement2))
+                    {
+                        item.SubstractAmount(true);
+                    }
+                }
+            }
 
             var zagotMaterials = resultComposition.Where(e => e.Type == _zagotType)
                 .Select(e => e.MaterialId)
@@ -854,10 +944,6 @@ namespace EcoDiffReport
                 columns.Add(new ColumnDescriptor(
                 MetaDataHelper.GetAttributeTypeID("120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/),
                 AttributeSourceTypes.Object, ColumnContents.Text, ColumnNameMapping.Guid, SortOrders.NONE, 0));
-
-                ////attrId = MetaDataHelper.GetAttributeTypeID(new Guid(Intermech.SystemGUIDs.attributeSubstituteInGroup) /*Номер заменителя в группе*/);
-                ////columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
-                ////ColumnNameMapping.Guid, SortOrders.NONE, 0));
 
                 if (addBmzFields)
                 {
@@ -1048,7 +1134,7 @@ namespace EcoDiffReport
 
             // Заполнение шапки
             //AddToLog("fill header");
-            ReportWriter reportWriter = new ReportWriter(document, resultComposition_tech, ecoObjCaption, headerObjCaption, compliteReport);
+            ReportWriter reportWriter = new ReportWriter(document, reportComp, ecoObjCaption, headerObjCaption, compliteReport);
             reportWriter.WriteReport();
 
             //AddToLog("Завершили создание отчета ");
@@ -1066,7 +1152,6 @@ namespace EcoDiffReport
 
             return true;
         }
-
 
         public void AddToLog(string text)
         {
@@ -1238,8 +1323,6 @@ namespace EcoDiffReport
                         table.AddChildNode(node, false, false);
 
                         Write(node, "Индекс", N.ToString());
-                        Write(node, "ДМТО", item.MaterialDMTO);
-
                         Write(node, "Код", item.MaterialCode);
                         Write(node, "Материал", item.MaterialCaption);
                         if (item.Amount1 != 0 || !item.HasEmptyAmount1)
@@ -1327,9 +1410,30 @@ namespace EcoDiffReport
             public bool isPurchased = false;
             public long MaterialId;
             public string MaterialCaption;
-            public string MaterialDMTO;
             public int Type;
             public long LinkToObj;
+
+            public bool ReplacementGroupIsChanged
+            {
+                get
+                {
+                    return ReplacementGroup1 != ReplacementGroup2 && ReplacementGroup1 > 0;
+                }
+            }
+            public bool ReplacementStatusIsChanged
+            {
+                get
+                {
+                    return isActualReplacement1 != isActualReplacement2 || isPossableReplacement1 != isPossableReplacement2;
+                }
+            }
+
+            public int ReplacementGroup1 = -1;
+            public bool isActualReplacement1 = false;
+            public bool isPossableReplacement1 = false;
+            public int ReplacementGroup2 = -1;
+            public bool isActualReplacement2 = false;
+            public bool isPossableReplacement2 = false;
 
             /// <summary>
             /// Код АМТО
@@ -1385,6 +1489,33 @@ namespace EcoDiffReport
             public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> EntersInAsm1 = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
 
             public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> EntersInAsm2 = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
+
+            public void SubstractAmount(bool growth)
+            {
+                if (growth)
+                {
+                    this.Amount2 = this.Amount1 - this.Amount2;
+
+                    foreach (var inAsm2 in this.EntersInAsm2)
+                    {
+                        Tuple<MeasuredValue, MeasuredValue> value = null;
+                        if (this.EntersInAsm1.TryGetValue(inAsm2.Key, out value))
+                            inAsm2.Value.Item1.Substract(value.Item1);
+                    }
+                }
+                else
+                {
+                    this.Amount1 = this.Amount2 - this.Amount1;
+
+                    foreach (var inAsm1 in this.EntersInAsm1)
+                    {
+                        Tuple<MeasuredValue, MeasuredValue> value = null;
+                        if (this.EntersInAsm2.TryGetValue(inAsm1.Key, out value))
+                            inAsm1.Value.Item1.Substract(value.Item1);
+                    }
+                }
+
+            }
 
             public Material Combine(Material material)
             {
@@ -1560,6 +1691,9 @@ namespace EcoDiffReport
             clone._AmountInAsm = _AmountInAsm;
             clone.LinkToObjId = LinkToObjId;
             clone.isPurchased = isPurchased;
+            clone.isPossableReplacement = isPossableReplacement;
+            clone.isActualReplacement = isActualReplacement;
+            clone.ReplacementGroup = ReplacementGroup;
             return clone;
         }
 
@@ -1573,6 +1707,11 @@ namespace EcoDiffReport
         public string Caption;
         public long LinkToObjId;
         public int ObjectType;
+
+        //группы замен
+        public int ReplacementGroup = -1;
+        public bool isActualReplacement = false;
+        public bool isPossableReplacement = false;
 
         /// <summary>
         /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи

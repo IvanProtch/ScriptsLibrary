@@ -25,7 +25,7 @@
       </Class>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>EAAAAEAgAQJAAEBKApQQAAFQIAAACAAAAAAAAAAIAAI=</HashCode>
+      <HashCode>EAAgAEAgAQJAAEBKApQQAAFAIAAACAAAAAEAAAAIAAI=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -56,12 +56,12 @@
     </AssociationLine>
     <AssociationLine Name="RelationsWithChild" Type="EcoDiffReport.Relation" FixedFromPoint="true">
       <Path>
-        <Point X="4.25" Y="4.062" />
-        <Point X="8" Y="4.062" />
+        <Point X="4.25" Y="4.286" />
+        <Point X="8" Y="4.286" />
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QAACgAQAgAAABAAGgAQACAQAAABgAAAACIAAABCAABA=</HashCode>
+      <HashCode>QAACgAQIgAgABAAGgAQACAQAAABgAAAACIAAABCAABA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
