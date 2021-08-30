@@ -711,6 +711,7 @@ namespace EcoDiffReport
                 Material mat = new Material();
                 mat.MaterialId = baseItem.MaterialId;
                 mat.MaterialCaption = baseItem.Caption;
+                mat.Caption = baseItem.Caption;
                 mat.Type = baseItem.ObjectType;
                 mat.LinkToObj = baseItem.LinkToObjId;
                 mat.MaterialCode = baseItem.MaterialCode;
@@ -808,6 +809,7 @@ namespace EcoDiffReport
                 Material mat = new Material();
                 mat.MaterialId = item.MaterialId;
                 mat.MaterialCaption = item.Caption;
+                mat.Caption = item.Caption;
                 mat.Type = item.ObjectType;
                 mat.LinkToObj = item.LinkToObjId;
                 mat.MaterialCode = item.MaterialCode;
@@ -849,59 +851,65 @@ namespace EcoDiffReport
                 //AddToLog("mat2 " + mat.ToString());
             }
 
+            #endregion Итоговый состав материалов
+
             resultComposition = resultComposition
                 .Where(e => (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
                 .ToList();
 
+            #region Изменение групп заменителей
+
             foreach (var item in resultComposition)
             {
-                if(item.ReplacementGroupIsChanged || item.ReplacementStatusIsChanged)
+                if (item.ReplacementGroupIsChanged || item.ReplacementStatusIsChanged)
                 {
                     //с актуальной на допустимую
-                    if(item.isActualReplacement1 && item.isPossableReplacement2)
+                    if (item.isActualReplacement1 && item.isPossableReplacement2)
                     {
-                        item.SubstractAmount(growth: true);
+                        item.SubstractAmount(growth: false);
                         var actual = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-                        item.MaterialCaption += string.Format("\nприменяется взамен {0}", actual.MaterialCaption);
+                        item.MaterialCaption += actual != null ? string.Format("\nприменяется взамен {0}", actual.Caption) : "";
                     }
 
                     //с допустимой на актуальную
                     if (item.isPossableReplacement1 && item.isActualReplacement2)
                     {
-                        item.SubstractAmount(growth: false);
+                        item.SubstractAmount(growth: true);
                         var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-                        item.MaterialCaption += string.Format("\nдопускается замена на {0}", possable.MaterialCaption);
+                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
                     }
 
                     //с основной на допустимую
-                    if (!(item.isActualReplacement1 && item.isPossableReplacement1) && item.isPossableReplacement2)
+                    if ((!item.isActualReplacement1 && !item.isPossableReplacement1) && item.isPossableReplacement2)
                     {
                         item.SubstractAmount(growth: false);
                         var possable = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-                        item.MaterialCaption += string.Format("\nдопускается замена на {0}", possable.MaterialCaption);
+                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
                     }
-                    
+
                     //с допустимой на основную
-                    if (item.isPossableReplacement1 && !(item.isActualReplacement2 && item.isPossableReplacement2))
+                    if (item.isPossableReplacement1 && (!item.isActualReplacement2 && !item.isPossableReplacement2))
                     {
                         item.SubstractAmount(growth: true);
                     }
 
                     //с основной на актуальную
-                    if (!(item.isActualReplacement1 && item.isPossableReplacement1) && item.isActualReplacement2)
+                    if ((!item.isActualReplacement1 && !item.isPossableReplacement1) && item.isActualReplacement2)
                     {
-                        item.SubstractAmount(growth: false);
+                        item.SubstractAmount(growth: true);
                         var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-                        item.MaterialCaption += string.Format("\nдопускается замена на {0}", possable.MaterialCaption);
+                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
                     }
 
                     //с актуальной на основную
-                    if (item.isActualReplacement1 && !(item.isActualReplacement2 && item.isPossableReplacement2))
+                    if (item.isActualReplacement1 && (!item.isActualReplacement2 && !item.isPossableReplacement2))
                     {
-                        item.SubstractAmount(growth: true);
+                        item.SubstractAmount(growth: false);
                     }
                 }
             }
+
+            #endregion
 
             List<long> resultCompIds = resultComposition
                 .Select(e => e.LinkToObj)
@@ -914,7 +922,6 @@ namespace EcoDiffReport
                 .Where(e => e.Type == _zagotType)
                 .Select(e => e.MaterialId));
 
-            #endregion Итоговый состав материалов
 
             #region Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
@@ -980,7 +987,8 @@ namespace EcoDiffReport
                         if (mat != null && isPurchased)
                         {
                             mat.MaterialCode = code;
-                            mat.MaterialCaption = name;
+                            if(mat.Type == _zagotType)
+                                mat.MaterialCaption = name;
 
                             resultComposition_tech.Add(mat);
                             //AddToLog("mat3 " + mat.ToString());
@@ -990,6 +998,7 @@ namespace EcoDiffReport
             }
 
             #endregion Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
+
 
             List<Material> reportComp = new List<Material>();
 
@@ -1334,11 +1343,13 @@ namespace EcoDiffReport
         private class Material
         {
             private string materialCode;
-            private string edIzm = "";
+            private string edIzm = string.Empty;
 
             public bool isPurchased = false;
             public long MaterialId;
             public string MaterialCaption;
+            public string Caption = string.Empty;
+
             public int Type;
             public long LinkToObj;
 
@@ -1423,18 +1434,7 @@ namespace EcoDiffReport
             {
                 if (growth)
                 {
-                    this.Amount2 = this.Amount1 - this.Amount2;
-
-                    foreach (var inAsm2 in this.EntersInAsm2)
-                    {
-                        Tuple<MeasuredValue, MeasuredValue> value = null;
-                        if (this.EntersInAsm1.TryGetValue(inAsm2.Key, out value))
-                            inAsm2.Value.Item1.Substract(value.Item1);
-                    }
-                }
-                else
-                {
-                    this.Amount1 = this.Amount2 - this.Amount1;
+                    this.Amount1 -= this.Amount2;
 
                     foreach (var inAsm1 in this.EntersInAsm1)
                     {
@@ -1443,7 +1443,17 @@ namespace EcoDiffReport
                             inAsm1.Value.Item1.Substract(value.Item1);
                     }
                 }
+                else
+                {
+                    this.Amount2 -= this.Amount1;
 
+                    foreach (var inAsm2 in this.EntersInAsm2)
+                    {
+                        Tuple<MeasuredValue, MeasuredValue> value = null;
+                        if (this.EntersInAsm1.TryGetValue(inAsm2.Key, out value))
+                            inAsm2.Value.Item1.Substract(value.Item1);
+                    }
+                }
             }
 
             public Material Combine(Material material)
