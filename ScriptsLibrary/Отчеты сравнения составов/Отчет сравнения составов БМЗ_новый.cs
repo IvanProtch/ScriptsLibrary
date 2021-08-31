@@ -45,7 +45,7 @@ namespace EcoDiffReport
         public bool compliteReport = true;
 
         public bool writeLog = false;
-        public bool writeTestingData = true;
+        public bool writeTestingData = false;
 
         private string _userError = string.Empty;
         private string _adminError = string.Empty;
@@ -992,21 +992,18 @@ namespace EcoDiffReport
 
             foreach (var item in resultComposition_tech)
             {
-                if (item.Amount1 != item.Amount2 || item.HasEmptyAmount1 != item.HasEmptyAmount2)
+                Material repeatItem = null;
+                //когда есть повторение позиции, объединяем с уже записанной
+                foreach (var repItem in reportComp)
                 {
-                    Material repeatItem = null;
-                    //когда есть повторение позиции, объединяем с уже записанной
-                    foreach (var repItem in reportComp)
-                    {
-                        if (repItem.MaterialCaption == item.MaterialCaption && repItem.Type == item.Type && repItem.EdIzm == item.EdIzm)
-                            repeatItem = repItem;
-                    }
-
-                    if (repeatItem != null)
-                        repeatItem = repeatItem.Combine(item);
-                    else
-                        reportComp.Add(item);
+                    if (repItem.MaterialCaption == item.MaterialCaption && repItem.Type == item.Type && repItem.EdIzm == item.EdIzm)
+                        repeatItem = repItem;
                 }
+
+                if (repeatItem != null)
+                    repeatItem = repeatItem.Combine(item);
+                else
+                    reportComp.Add(item);
             }
 
             reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption && e.EdIzm == i.EdIzm) > 1);
@@ -1437,7 +1434,7 @@ namespace EcoDiffReport
             {
                 if (amountIsIncrease)
                 {
-                    this.Amount1 -= this.Amount2;
+                    this.Amount1 = 0;
 
                     foreach (var inAsm1 in this.EntersInAsm1)
                     {
@@ -1448,7 +1445,7 @@ namespace EcoDiffReport
                 }
                 else
                 {
-                    this.Amount2 -= this.Amount1;
+                    this.Amount2 = 0;
 
                     foreach (var inAsm2 in this.EntersInAsm2)
                     {
