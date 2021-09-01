@@ -30,10 +30,11 @@ namespace EcoDiffReport
 
         public ScriptResult Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
         {
-            Report report = new Report();
+            Report report = new Report() { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/ compliteReport = false };
             report.Run(session, document, objectIDs);
 
-            document.UpdateLayout(true);
+            if(report.compliteReport)
+                document.UpdateLayout(true);
 
             return new ScriptResult(true, document);
         }
@@ -41,8 +42,7 @@ namespace EcoDiffReport
 
     public class Report
     {
-        //режим расширенного отчета
-        public bool compliteReport = true;
+        public bool compliteReport = false;
 
         public bool writeLog = false;
         public bool writeTestingData = false;
@@ -1056,7 +1056,7 @@ namespace EcoDiffReport
 
             // Заполнение шапки
             //AddToLog("fill header");
-            ReportWriter reportWriter = new ReportWriter(document, reportComp, ecoObjCaption, headerObjCaption, compliteReport);
+            ReportWriter reportWriter = new ReportWriter(document, reportComp.Where(e => e.Amount1 != e.Amount2).ToList(), ecoObjCaption, headerObjCaption, compliteReport);
             reportWriter.WriteReport();
 
             //AddToLog("Завершили создание отчета ");
@@ -1148,7 +1148,7 @@ namespace EcoDiffReport
                             Write(node, "Код", item.MaterialCode);
                             if(item.MaterialCaption.Length != item.Caption.Length)
                             {
-                                Write(node, "Материал", item.MaterialCaption, new CharFormat("arial", 10, CharStyle.Bold));
+                                Write(node, "Материал", item.MaterialCaption, new CharFormat("arial", 10, CharStyle.Italic));
                             }
                             else Write(node, "Материал", item.MaterialCaption);
 
@@ -1250,7 +1250,11 @@ namespace EcoDiffReport
 
                         Write(node, "Индекс", N.ToString());
                         Write(node, "Код", item.MaterialCode);
-                        Write(node, "Материал", item.MaterialCaption);
+
+                        if (item.MaterialCaption.Length != item.Caption.Length)
+                            Write(node, "Материал", item.MaterialCaption, new CharFormat("arial", 10, CharStyle.Italic));
+                        else Write(node, "Материал", item.MaterialCaption);
+
                         if (item.Amount1 != 0 || !item.HasEmptyAmount1)
                             Write(node, "Было", Convert.ToString(Math.Round(item.Amount1, 3)));
                         else
@@ -1327,7 +1331,7 @@ namespace EcoDiffReport
                 TextData td = parent.FindFirstNodeFromTemplate_Recursive(tplid) as TextData;
                 if (td != null)
                 {
-                    td.SetCharFormat(charFormat == null ? new CharFormat("arial", 10, CharStyle.Regular) : charFormat, true, true);
+                    td.SetCharFormat(charFormat == null ? new CharFormat("arial", 10, CharStyle.Regular) : charFormat, false, false);
                     td.AssignText(text, false, false, false);
                 }
 
@@ -1555,11 +1559,11 @@ namespace EcoDiffReport
 
                         #region Перенесем выполнение кода статического метода в текущее место
 
-                        IOutputView view = ServicesManager.GetService(typeof(IOutputView)) as IOutputView;
-                        if (view != null)
-                            view.WriteString("Скрипт сравнения составов", text1);
-                        else
-                            AddToLogForLink("view == null");
+                        //IOutputView view = ServicesManager.GetService(typeof(IOutputView)) as IOutputView;
+                        //if (view != null)
+                        //    view.WriteString("Скрипт сравнения составов", text1);
+                        //else
+                        //    AddToLogForLink("view == null");
 
                         #endregion Перенесем выполнение кода статического метода в текущее место
 
