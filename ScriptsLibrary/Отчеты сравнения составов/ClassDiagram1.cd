@@ -13,12 +13,12 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Class Name="EcoDiffReport.Report.Material">
+      <Class Name="EcoDiffReport.Report.ReportWriter">
         <TypeIdentifier>
           <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
         </TypeIdentifier>
       </Class>
-      <Class Name="EcoDiffReport.Report.ReportWriter">
+      <Class Name="EcoDiffReport.Report.Material">
         <TypeIdentifier>
           <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
         </TypeIdentifier>

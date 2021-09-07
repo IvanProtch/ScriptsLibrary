@@ -126,44 +126,44 @@ namespace EcoDiffReport
                 if (contextObjectsID.Contains(item.Id))
                     item.isContextObject = true;
 
-                if (item is ComplexMaterialItem)
-                {
-                    var Amount1 = row["b9ab8a1a-e988-4031-9f30-72a95644830a" /*Количество компонента 1 (БМЗ)*/];
-                    if (Amount1 is string)
-                        (item as ComplexMaterialItem).Component1Amount = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(Amount1), false);
+                //if (item is ComplexMaterialItem)
+                //{
+                //    var Amount1 = row["b9ab8a1a-e988-4031-9f30-72a95644830a" /*Количество компонента 1 (БМЗ)*/];
+                //    if (Amount1 is string)
+                //        (item as ComplexMaterialItem).Component1Amount = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(Amount1), false);
 
-                    var Amount2 = row["8de3b657-868a-47de-8a62-3bbaf7c4994f" /*Количество компонента 2 (БМЗ)*/];
-                    if (Amount2 is string)
-                        (item as ComplexMaterialItem).Component2Amount = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(Amount2), false);
+                //    var Amount2 = row["8de3b657-868a-47de-8a62-3bbaf7c4994f" /*Количество компонента 2 (БМЗ)*/];
+                //    if (Amount2 is string)
+                //        (item as ComplexMaterialItem).Component2Amount = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(Amount2), false);
 
-                    var AmountMain = row["34b64b00-d430-48e4-8692-f52a7485a10a" /*Количество основы (БМЗ)*/];
-                    if (AmountMain is string)
-                        (item as ComplexMaterialItem).MainComponentAmount = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(AmountMain), false);
-                }
-                if (item is MaterialItem)
-                {
-                    var compSostMat = row["54b2e64e-1d4b-4a9d-9633-023f6b6bcd4a" /*Компонент составного материала*/];
-                    if (compSostMat is string)
-                    {
-                        switch (compSostMat.ToString())
-                        {
-                            case "Основа":
-                                (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.ComponentMain;
-                                break;
+                //    var AmountMain = row["34b64b00-d430-48e4-8692-f52a7485a10a" /*Количество основы (БМЗ)*/];
+                //    if (AmountMain is string)
+                //        (item as ComplexMaterialItem).MainComponentAmount = MeasureHelper.ConvertToMeasuredValue(Convert.ToString(AmountMain), false);
+                //}
+                //if (item is MaterialItem)
+                //{
+                //    var compSostMat = row["54b2e64e-1d4b-4a9d-9633-023f6b6bcd4a" /*Компонент составного материала*/];
+                //    if (compSostMat is string)
+                //    {
+                //        switch (compSostMat.ToString())
+                //        {
+                //            case "Основа":
+                //                (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.ComponentMain;
+                //                break;
 
-                            case "Компонент 1":
-                                (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.Component1;
-                                break;
+                //            case "Компонент 1":
+                //                (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.Component1;
+                //                break;
 
-                            case "Компонент 2":
-                                (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.Component2;
-                                break;
+                //            case "Компонент 2":
+                //                (item as MaterialItem).ComplexMaterialComponentValue = MaterialItem.ComplexMaterialComponent.Component2;
+                //                break;
 
-                            default:
-                                break;
-                        }
-                    }
-                }
+                //            default:
+                //                break;
+                //        }
+                //    }
+                //}
             }
 
             long parentId = Convert.ToInt64(row["F_PROJ_ID"]);
@@ -302,7 +302,7 @@ namespace EcoDiffReport
                     row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
                     continue;
 
-                var item = GetItem(row, itemsDict, true);
+                Item item = GetItem(row, itemsDict, true);
                 //if (item != null)
                 //    AddToLog("item " + item.ToString());
             }
@@ -336,54 +336,54 @@ namespace EcoDiffReport
                 {
                     //(по ссылке на объект не удается связать комплектующую со сборкой или деталью, -- ссылка указывает на ид версии базового объекта, а не текущего)
                     //если комплектующая associatedComplectUnit входит в собираемую с тем же названием что и item в вышестоящую сборку
-                    var itemEntersInAsms = item.AmountInAsm.Keys.Select(e => e.Parent.Caption);
+                    IEnumerable<string> itemEntersInAsms = item.AmountInAsm.Keys.Select(e => e.Parent.Caption);
 
-                    var associatedComplectUnit = itemsDict.Item2.Values
+                    Item associatedComplectUnit = itemsDict.Item2.Values
                         .Where(e => e.ObjectType == _complectUnitType)
                         .Where(e => e.Caption == item.Caption)
                         .FirstOrDefault(e => e.AmountInAsm.Keys.Select(r => r.Parent.Caption).Where(t => itemEntersInAsms.Contains(t)).Count() > 0);
 
                     //перезаписываем значения количества для item из данных associatedComplectUnit
-                    foreach (var item_rwp in item.RelationsWithParent)
+                    foreach (Relation item_rwp in item.RelationsWithParent)
                     {
                         if (associatedComplectUnit == null)
                             break;
 
-                        var associatedItem_rwp = associatedComplectUnit.RelationsWithParent
+                        Relation associatedItem_rwp = associatedComplectUnit.RelationsWithParent
                             .FirstOrDefault(e => e.Child.Caption == associatedComplectUnit.Caption);
 
                         item_rwp.Amount = associatedItem_rwp != null ? associatedItem_rwp.Amount : item_rwp.Amount;
                     }
                 }
 
-                if (item is ComplexMaterialItem)
-                {
-                    ComplexMaterialItem complexMaterial = item as ComplexMaterialItem;
+                //if (item is ComplexMaterialItem)
+                //{
+                //    ComplexMaterialItem complexMaterial = item as ComplexMaterialItem;
 
-                    foreach (var item_rwc in item.RelationsWithChild)
-                    {
-                        switch ((item_rwc.Child as MaterialItem).ComplexMaterialComponentValue)
-                        {
-                            case MaterialItem.ComplexMaterialComponent.Component1:
-                                item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.Component1Amount : item_rwc.Amount;
-                                break;
+                //    foreach (var item_rwc in item.RelationsWithChild)
+                //    {
+                //        switch ((item_rwc.Child as MaterialItem).ComplexMaterialComponentValue)
+                //        {
+                //            case MaterialItem.ComplexMaterialComponent.Component1:
+                //                item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.Component1Amount : item_rwc.Amount;
+                //                break;
 
-                            case MaterialItem.ComplexMaterialComponent.Component2:
-                                item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.Component2Amount : item_rwc.Amount;
-                                break;
+                //            case MaterialItem.ComplexMaterialComponent.Component2:
+                //                item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.Component2Amount : item_rwc.Amount;
+                //                break;
 
-                            case MaterialItem.ComplexMaterialComponent.ComponentMain:
-                                item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.MainComponentAmount : item_rwc.Amount;
-                                break;
+                //            case MaterialItem.ComplexMaterialComponent.ComponentMain:
+                //                item_rwc.Amount = item_rwc.Amount == null ? complexMaterial.MainComponentAmount : item_rwc.Amount;
+                //                break;
 
-                            default:
-                                break;
-                        }
-                    }
-                }
+                //            default:
+                //                break;
+                //        }
+                //    }
+                //}
             }
 
-            foreach (var item in itemsDict.Item1.Values)
+            foreach (Item item in itemsDict.Item1.Values)
             {
                 Tuple<string, string> exceptionInfo = null;
 
@@ -415,7 +415,7 @@ namespace EcoDiffReport
                     //ключ состоит из ид.ед.изм и materialid, потому что itemsAmount для одного item может быть несколько с разными единицами измерения
 
                     Item cachedItem;
-                    var itemKey = new Tuple<long, long>(itemAmount.Key, item.GetKey());
+                    Tuple<long, long> itemKey = new Tuple<long, long>(itemAmount.Key, item.GetKey());
                     if (composition.TryGetValue(itemKey, out cachedItem))
                     {
                         if (cachedItem.AmountSum != null)
@@ -423,7 +423,7 @@ namespace EcoDiffReport
                             cachedItem.AmountSum.Add(AmountItemClone.AmountSum);
 
                             //обновляем данные по входямостям в сборки
-                            foreach (var kic_AmountInAsm in AmountItemClone.AmountInAsm)
+                            foreach (KeyValuePair<Relation, MeasuredValue> kic_AmountInAsm in AmountItemClone.AmountInAsm)
                             {
                                 MeasuredValue AmountInAsm = null;
                                 if (cachedItem.AmountInAsm.TryGetValue(kic_AmountInAsm.Key, out AmountInAsm))
@@ -763,7 +763,6 @@ namespace EcoDiffReport
                 if (ecoItem != null)
                 {
                     //mat.Amount2 = MeasureHelper.ConvertToMeasuredValue(item2.AmountSum, mat.MeasureId).Value;
-
                     mat.HasEmptyAmount2 = ecoItem.HasEmptyAmount;
                     //AddToLog("item02 " + ecoItem.ToString());
                     if (ecoItem.AmountSum != null)
