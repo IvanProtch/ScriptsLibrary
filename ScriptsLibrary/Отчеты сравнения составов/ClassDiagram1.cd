@@ -56,12 +56,12 @@
     </AssociationLine>
     <AssociationLine Name="RelationsWithChild" Type="EcoDiffReport.Relation" FixedFromPoint="true">
       <Path>
-        <Point X="4.25" Y="4.286" />
-        <Point X="8" Y="4.286" />
+        <Point X="4.25" Y="4.435" />
+        <Point X="8" Y="4.435" />
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QAACgAQIgAgABAAGgAQACAQAAABgAAAACIAAABCAABA=</HashCode>
+      <HashCode>QAACgAQIgAgABAAGgAQACAQAAABhAAAADIAAABCAABA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>

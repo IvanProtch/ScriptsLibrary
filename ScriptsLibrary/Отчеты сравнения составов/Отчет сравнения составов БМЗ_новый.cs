@@ -30,7 +30,7 @@ namespace EcoDiffReport
 
         public ScriptResult Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
         {
-            Report report = new Report() { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/ compliteReport = false };
+            Report report = new Report() { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/ compliteReport = true };
             report.Run(session, document, objectIDs);
 
             if(report.compliteReport)
@@ -109,6 +109,7 @@ namespace EcoDiffReport
                 else
                     item = new Item();
 
+                item.SourseOrg = Convert.ToString(row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/]);
                 item.Id = Convert.ToInt64(row["F_PART_ID"]);
                 item.ObjectId = Convert.ToInt64(row["F_OBJECT_ID"]);
                 item.ObjectType = objType;
@@ -234,6 +235,7 @@ namespace EcoDiffReport
             if (isPocupValue != DBNull.Value)
             {
                 item.isPurchased = Convert.ToInt32(isPocupValue) != 1;
+                item.isCoop = Convert.ToInt32(isPocupValue) == 3;
             }
 
             object matCode = row["120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/];
@@ -298,9 +300,9 @@ namespace EcoDiffReport
 
             foreach (DataRow row in dtCompos.Rows)
             {
-                if (Convert.ToInt32(row["F_OBJECT_TYPE"]) == _zagotType &&
-                    row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
-                    continue;
+                //if (Convert.ToInt32(row["F_OBJECT_TYPE"]) == _zagotType &&
+                //    row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
+                //    continue;
 
                 Item item = GetItem(row, itemsDict, true);
                 //if (item != null)
@@ -335,7 +337,7 @@ namespace EcoDiffReport
                 if (item.ObjectType == _partType || item.ObjectType == _CEType)
                 {
                     //(по ссылке на объект не удается связать комплектующую со сборкой или деталью, -- ссылка указывает на ид версии базового объекта, а не текущего)
-                    //если комплектующая associatedComplectUnit входит в собираемую с тем же названием что и item в вышестоящую сборку
+                    //если комплектующая associatedComplectUnit входит в собираемую с тем же названием, что и item в вышестоящую сборку
                     IEnumerable<string> itemEntersInAsms = item.AmountInAsm.Keys.Select(e => e.Parent.Caption);
 
                     Item associatedComplectUnit = itemsDict.Item2.Values
@@ -705,6 +707,8 @@ namespace EcoDiffReport
                 mat.LinkToObj = baseItem.LinkToObjId;
                 mat.MaterialCode = baseItem.MaterialCode;
                 mat.isPurchased = baseItem.isPurchased;
+                mat.isCoop = baseItem.isCoop;
+                mat.SourseOrg = baseItem.SourseOrg;
 
                 mat.isActualReplacement1 = baseItem.isActualReplacement;
                 mat.isPossableReplacement1 = baseItem.isPossableReplacement;
@@ -802,6 +806,7 @@ namespace EcoDiffReport
                 mat.LinkToObj = item.LinkToObjId;
                 mat.MaterialCode = item.MaterialCode;
                 mat.isPurchased = item.isPurchased;
+                mat.isCoop = item.isCoop;
 
                 mat.isActualReplacement2 = item.isActualReplacement;
                 mat.isPossableReplacement2 = item.isPossableReplacement;
@@ -891,7 +896,7 @@ namespace EcoDiffReport
                     //с актуальной на основную
                     if (item.isActualReplacement1 && (!item.isActualReplacement2 && !item.isPossableReplacement2))
                     {
-
+                        continue;
                     }
                 }
             }
@@ -913,7 +918,7 @@ namespace EcoDiffReport
             #region Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
             List<Material> resultComposition_tech = new List<Material>();
-            resultComposition_tech.AddRange(resultComposition.Where(e => e.isPurchased));
+            resultComposition_tech.AddRange(resultComposition.Where(e => e.isPurchased || e.isCoop));
 
             if (resultCompIds.Count > 0)
             {
@@ -942,7 +947,11 @@ namespace EcoDiffReport
 
                 if (addBmzFields)
                 {
-                    attrId = MetaDataHelper.GetAttributeTypeID(new Guid("8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/) /*Признак изготовления*/);
+                    attrId = MetaDataHelper.GetAttributeTypeID(new Guid("8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/));
+                    columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
+                    ColumnNameMapping.Guid, SortOrders.NONE, 0));
+
+                    attrId = MetaDataHelper.GetAttributeTypeID("84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/);
                     columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Object, ColumnContents.Text,
                     ColumnNameMapping.Guid, SortOrders.NONE, 0));
                 }
@@ -962,17 +971,26 @@ namespace EcoDiffReport
                     string name = Convert.ToString(row["CAPTION"]);
                     string code = Convert.ToString(row["120f681e-048d-4a57-b260-1c3481bb15bc" /*Код АМТО*/]);
 
-                    bool isPurchased = false;
-                    if (row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/] is long)
+                    bool isPurchased = false, isCoop = false;
+                    object attrValue = row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/];
+                    if (attrValue is long)
                     {
-                        isPurchased = Convert.ToInt32(row["8debd174-928c-4c07-9dc1-423557bea1d7" /*Признак изготовления БМЗ*/]) != 1 ? true : false;
+                        isPurchased = Convert.ToInt32(attrValue) != 1 ? true : false;
+                        isCoop = Convert.ToInt32(attrValue) == 3 ? true : false;
                     }
+
+                    string sourseOrg = string.Empty;
+                    attrValue = row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/];
+                    if (attrValue is string)
+                        sourseOrg = attrValue.ToString();
 
                     var materials = resultComposition.Where(x => x.LinkToObj == id || x.MaterialId == id);
                     foreach (var mat in materials)
                     {
-                        if (mat != null && isPurchased)
+                        if (mat != null && (isPurchased || isCoop))
                         {
+                            mat.isCoop = isCoop;
+                            mat.isPurchased = isPurchased;
                             mat.MaterialCode = code;
                             if(mat.Type == _zagotType)
                                 mat.MaterialCaption = name;
@@ -1009,6 +1027,10 @@ namespace EcoDiffReport
 
             foreach (var item in reportComp)
             {
+                //для объектов из других организаций
+                if (item.isCoop)
+                    item.MaterialCaption += " от " + item.SourseOrg;
+
                 //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
                 var keys1 = item.EntersInAsm1.Keys.ToList();
                 foreach (var key in keys1)
@@ -1126,7 +1148,7 @@ namespace EcoDiffReport
                 int totalIndex = 0;
                 int rowIndex = 0;
 
-                foreach (var item in _resultComposition.OrderBy(e => e.MaterialCaption))
+                foreach (var item in _resultComposition.OrderByDescending(e => e.isCoop).ThenBy(e => e.MaterialCaption))
                 {
                     //AddToLog("createnode " + item.ToString());
                     DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
@@ -1349,10 +1371,12 @@ namespace EcoDiffReport
             private string edIzm = string.Empty;
 
             public bool isPurchased = false;
+            public bool isCoop = false;
+
             public long MaterialId;
             public string MaterialCaption;
             public string Caption = string.Empty;
-
+            public string SourseOrg;
             public int Type;
             public long LinkToObj;
 
@@ -1636,11 +1660,14 @@ namespace EcoDiffReport
             clone.isPossableReplacement = isPossableReplacement;
             clone.isActualReplacement = isActualReplacement;
             clone.ReplacementGroup = ReplacementGroup;
+            clone.isCoop = isCoop;
+            clone.SourseOrg = SourseOrg;
             return clone;
         }
-
+        public string SourseOrg;
         public bool isContextObject = false;
         public bool isPurchased = false;
+        public bool isCoop = false;
         public MeasuredValue AmountSum;
         public long MaterialId;
         public string MaterialCode;
