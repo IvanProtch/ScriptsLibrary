@@ -719,7 +719,18 @@ namespace EcoDiffReport
                 resultComposition.Add(mat);
 
                 mat.HasEmptyAmount1 = baseItem.HasEmptyAmount;
-                //AddToLog("mat01 " + mat.ToString());
+
+                if(mat.Type == _zagotType && mat.isCoop)
+                {
+                    var relPart = baseItem.RelationsWithParent.FirstOrDefault();
+                    if(relPart != null)
+                    {
+                        relPart.Parent.SourseOrg = baseItem.SourseOrg;
+                        relPart.Parent.isCoop = true;
+                        mat.MaterialId = relPart.Parent.MaterialId;
+                    }
+                }
+
                 if (baseItem.AmountSum != null)
                 {
                     //записываем количество из базовой версии
@@ -1031,29 +1042,55 @@ namespace EcoDiffReport
                 if (item.isCoop)
                     item.MaterialCaption += " от " + item.SourseOrg;
 
-                //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
-                var keys1 = item.EntersInAsm1.Keys.ToList();
-                foreach (var key in keys1)
-                {
-                    Tuple<MeasuredValue, MeasuredValue> value = null;
-                    if (item.EntersInAsm2.TryGetValue(key, out value))
-                    {
-                        if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
-                        {
-                            item.EntersInAsm1.Remove(key);
-                            item.EntersInAsm2.Remove(key);
-                            continue;
-                        }
-                        if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
-                        {
-                            item.EntersInAsm1.Remove(key);
-                            item.EntersInAsm2.Remove(key);
-                        }
-                    }
-                }
+                ////оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
+                //var keys1 = item.EntersInAsm1.Keys.ToList();
+                //foreach (var key in keys1)
+                //{
+                //    Tuple<MeasuredValue, MeasuredValue> value = null;
+                //    if (item.EntersInAsm2.TryGetValue(key, out value))
+                //    {
+                //        if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
+                //        {
+                //            item.EntersInAsm1.Remove(key);
+                //            item.EntersInAsm2.Remove(key);
+                //            continue;
+                //        }
+                //        if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
+                //        {
+                //            item.EntersInAsm1.Remove(key);
+                //            item.EntersInAsm2.Remove(key);
+                //        }
+                //    }
+                //}
                 item.EntersInAsm1 = item.EntersInAsm1.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
                 item.EntersInAsm2 = item.EntersInAsm2.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
             }
+
+            reportComp = reportComp
+                .OrderByDescending(e => e.SourseOrg).ThenBy(e => e.Type).ThenBy(e => e.MaterialCaption)
+                .Where(e => (e.Amount1 != e.Amount2)).ToList();
+
+            var coopComp = reportComp.Where(e => e.isCoop).ToList();
+
+            reportComp.RemoveAll(e => e.isCoop);
+
+            for (int i = 0; i < coopComp.Count; i++)
+            {
+                if (coopComp[i].Type == _zagotType)
+                {
+                    Material part = coopComp.FirstOrDefault(e => e.Type == _partType && e.MaterialId == coopComp[i].MaterialId);
+                    int partInd = 0;
+                    if (part != null)
+                        partInd = coopComp.IndexOf(part);
+                    else continue;
+
+                    var temp = coopComp[i-1];
+                    coopComp[i-1] = coopComp[partInd];
+                    coopComp[partInd] = temp;
+                }
+            }
+
+            reportComp.AddRange(coopComp);
 
             if (writeTestingData)
             {
@@ -1073,11 +1110,15 @@ namespace EcoDiffReport
             }
 
 
+
             #region Формирование отчета
 
             // Заполнение шапки
             //AddToLog("fill header");
-            ReportWriter reportWriter = new ReportWriter(document, reportComp.Where(e => e.Amount1 != e.Amount2).ToList(), ecoObjCaption, headerObjCaption, compliteReport);
+
+
+            ReportWriter reportWriter = new ReportWriter(document, reportComp, ecoObjCaption, headerObjCaption, compliteReport);
+
             reportWriter.WriteReport();
 
             //AddToLog("Завершили создание отчета ");
@@ -1148,7 +1189,7 @@ namespace EcoDiffReport
                 int totalIndex = 0;
                 int rowIndex = 0;
 
-                foreach (var item in _resultComposition.OrderByDescending(e => e.isCoop).ThenBy(e => e.MaterialCaption))
+                foreach (var item in _resultComposition)
                 {
                     //AddToLog("createnode " + item.ToString());
                     DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
@@ -1346,7 +1387,6 @@ namespace EcoDiffReport
                     td.AssignText(text, false, false, false);
                 }
             }
-
             private void Write(DocumentTreeNode parent, string tplid, string text, CharFormat charFormat = null)
             {
                 TextData td = parent.FindFirstNodeFromTemplate_Recursive(tplid) as TextData;
@@ -1372,7 +1412,6 @@ namespace EcoDiffReport
 
             public bool isPurchased = false;
             public bool isCoop = false;
-
             public long MaterialId;
             public string MaterialCaption;
             public string Caption = string.Empty;
