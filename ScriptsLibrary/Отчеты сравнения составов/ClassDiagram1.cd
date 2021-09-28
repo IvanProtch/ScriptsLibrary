@@ -1,12 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
-  <Class Name="EcoDiffReport.Script">
-    <Position X="8" Y="6" Width="2.25" />
-    <TypeIdentifier>
-      <HashCode>AAEAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="EcoDiffReport.Report">
     <Position X="12.25" Y="1" Width="4" />
     <Compartments>
@@ -56,12 +49,12 @@
     </AssociationLine>
     <AssociationLine Name="RelationsWithChild" Type="EcoDiffReport.Relation" FixedFromPoint="true">
       <Path>
-        <Point X="4.25" Y="4.435" />
-        <Point X="8" Y="4.435" />
+        <Point X="4.25" Y="4.509" />
+        <Point X="8" Y="4.509" />
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QAACgAQIgAgABAAGgAQACAQAAABhAAAADIAAABCAABA=</HashCode>
+      <HashCode>QAACgAQIgAgABAAGgAQACAQAAABhAAAALIAAABCAABA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
