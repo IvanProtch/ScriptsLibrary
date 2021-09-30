@@ -56,7 +56,7 @@ public class Script
 
                     string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeDescCounts[workTypeDescription], operationNo);
 
-                    operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/)).Value = operationNoInMO;
+                    operation.GetAttributeByGuid(new Guid("a6b34136-17d9-480e-8658-29642e557591" /*Номер операции для ERP*/)).Value = operationNoInMO;
                 }
             }
         }

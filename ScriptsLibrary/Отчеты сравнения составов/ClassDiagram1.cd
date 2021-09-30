@@ -49,8 +49,8 @@
     </AssociationLine>
     <AssociationLine Name="RelationsWithChild" Type="EcoDiffReport.Relation" FixedFromPoint="true">
       <Path>
-        <Point X="4.25" Y="4.509" />
-        <Point X="8" Y="4.509" />
+        <Point X="4.25" Y="4.75" />
+        <Point X="8" Y="4.75" />
       </Path>
     </AssociationLine>
     <TypeIdentifier>

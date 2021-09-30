@@ -50,7 +50,8 @@ namespace EcoDiffReport
 
         private string _userError = string.Empty;
         private string _adminError = string.Empty;
-        private List<long> _messageRecepients = new List<long>() { 3252010 /*Булычева ЕИ*/, 62180376 /*Бородина ЕВ*/ }; //  51448525 /*Протченко ИВ*/
+        private List<long> _messageRecepients = new List<long>();
+        //private List<long> _messageRecepients = new List<long>() { 3252010 /*Булычева ЕИ*/, 62180376 /*Бородина ЕВ*/ }; //  51448525 /*Протченко ИВ*/
         private long _asm;
         private long _eco;
 
@@ -284,6 +285,8 @@ namespace EcoDiffReport
                     item.MaterialId = Convert.ToInt64(matId);
                 }
             }
+            //if (item.ObjectType == _asmUnitType || item.ObjectType == _CEType)
+            //    item.MaterialId = materialId;
 
             //AddToLog("CreateLink " + lnk.ToString());
             return item;
@@ -373,6 +376,7 @@ namespace EcoDiffReport
                                 complectUnit.SourseOrg = item.SourseOrg;
                                 complectUnit.isCoop = item.isCoop;
                                 complectUnit.WriteToReportForcibly = true;
+                                item.LinkToObjId = complectUnit.LinkToObjId;
                             }
                         }
                     }
@@ -412,6 +416,7 @@ namespace EcoDiffReport
                     continue;
 
                 bool hasContextObjects = false;
+                
                 var itemsAmount = item.GetAmount(true, ref hasContextObjects, ref item.HasEmptyAmount, ref exceptionInfo);
 
                 if (exceptionInfo.Item2.Length > 0)
@@ -462,6 +467,15 @@ namespace EcoDiffReport
                     }
                 }
             }
+
+            //отдельно считаем сборки и собираемые, чтобы не вносить изменения в расчет материалов:
+            foreach (var asm in itemsDict.Item1.Values.Where(e => e.ObjectType == _asmUnitType || e.ObjectType == _CEType))
+            {
+                Tuple<string, string> exceptionInfo = null;
+                bool hasContextObjects = false;
+                asm.AmountSum = asm.GetAmount(false, ref hasContextObjects, ref asm.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+            }
+
             return composition;
         }
 
@@ -882,7 +896,7 @@ namespace EcoDiffReport
                     if (attrValue is string)
                         sourseOrg = attrValue.ToString();
 
-                    var materials = resultComposition.Where(x => x.LinkToObj == id || x.MaterialId == id);
+                    var materials = resultComposition.Where(x => (x.LinkToObj == id && x.Type != _zagotType) || x.MaterialId == id);
                     foreach (var mat in materials)
                     {
                         if (mat != null && (isPurchased || isCoop))
@@ -916,7 +930,7 @@ namespace EcoDiffReport
                 }
 
                 if (repeatItem != null)
-                    repeatItem = repeatItem.Combine(item);
+                    repeatItem.Combine(item);
                 else
                     reportComp.Add(item);
             }
@@ -926,7 +940,8 @@ namespace EcoDiffReport
             foreach (var item in reportComp)
             {
                 //для объектов из других организаций
-                if (item.isCoop || item.SourseOrg != originOrg)
+                if ((item.isCoop && (item.Type == _complectUnitType || item.Type == _partType))
+                    || (item.SourseOrg != originOrg && item.Type == _zagotType))
                     item.MaterialCaption += " от " + item.SourseOrg;
 
                 ////оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
@@ -965,7 +980,7 @@ namespace EcoDiffReport
             {
                 if (coopComp[i].Type == _zagotType)
                 {
-                    Material part = coopComp.FirstOrDefault(e => e.Type == _complectUnitType && e.MaterialId == coopComp[i].MaterialId);
+                    Material part = coopComp.FirstOrDefault(e => e.Type == _complectUnitType && e.LinkToObj == coopComp[i].LinkToObj);
                     int partInd = 0;
                     if (part != null)
                         partInd = coopComp.IndexOf(part);
@@ -1360,9 +1375,12 @@ namespace EcoDiffReport
                 Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> entersInAsmToInit = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
                 foreach (var Amountinasm1 in item.AmountInAsm)
                 {
-                    var asmAmount = Amountinasm1.Key.Parent.RelationsWithParent.FirstOrDefault() != null ? Amountinasm1.Key.Parent.RelationsWithParent.First().Amount : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
+                    var asmAmount = Amountinasm1.Key.Parent.AmountSum;
+                        //Amountinasm1.Key.Parent.RelationsWithParent.FirstOrDefault() != null ? Amountinasm1.Key.Parent.AmountSum : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
+
                     var _null = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
-                    entersInAsmToInit[Amountinasm1.Key.Parent.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null, asmAmount != null ? asmAmount : _null);
+                    entersInAsmToInit[Amountinasm1.Key.Parent.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null,
+                        asmAmount != null ? asmAmount : _null);
                 }
                 return entersInAsmToInit;
             }
@@ -1485,6 +1503,11 @@ namespace EcoDiffReport
             {
                 if (this.MaterialCode.Length > 0)
                     this.MaterialCode = material.MaterialCode;
+
+                //if (material.SourseOrg != "БМЗ")
+                //    this.SourseOrg = material.SourseOrg;
+
+                this.WriteToReportForcibly = material.WriteToReportForcibly ? true : this.WriteToReportForcibly;
 
                 this.Amount1 += material.Amount1;
 
