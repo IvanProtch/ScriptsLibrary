@@ -72,6 +72,7 @@
     <Compile Include="Script.cs" />
     <Compile Include="Аутентичные файлы.cs" />
     <Compile Include="Заполнение номера операции в сквозном МО.cs" />
+    <Compile Include="Назначение прав доступа.cs" />
     <Compile Include="Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый_вариант2.cs" />
     <Compile Include="Проверка атрибутов «Дата изменения в ERP БМЗ» или «Указание о внедрении».cs" />
     <Compile Include="Проверка ИИ исполнителя.cs" />

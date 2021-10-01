@@ -942,7 +942,7 @@ namespace EcoDiffReport
                 //для объектов из других организаций
                 if ((item.isCoop && (item.Type == _complectUnitType || item.Type == _partType))
                     || (item.SourseOrg != originOrg && item.Type == _zagotType))
-                    item.MaterialCaption += " от " + item.SourseOrg;
+                    item.MaterialCode += "\nот " + item.SourseOrg;
 
                 ////оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
                 //var keys1 = item.EntersInAsm1.Keys.ToList();

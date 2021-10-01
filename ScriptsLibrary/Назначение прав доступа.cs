@@ -20,7 +20,7 @@ public class Script
             System.Diagnostics.Debugger.Break();
 
         IUserSession session = activity.Session;
-        List<long> userGroupIDs = new List<long>() { 3254492/*Все пользователи БМЗ*/, 97172703/*Все пользователи КСК*/};
+        List<long> userGroupIDs = new List<long>() { 3254492/*Все пользователи БМЗ*/, 62874086/*КСК-БМЗ ТБ2 (ОП "КСК-Брянск")*/};
         List<int> objtypeECO = ScriptContext.MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid(Intermech.SystemGUIDs.objtypeECO /*Извещения*/));
 
         // сервис для работы с контекстами
@@ -50,15 +50,15 @@ public class Script
                 DataTable dtAccList = sec.GetAccessList(out actPr, out qObjInfo);
 
                 // если право уже есть - пропускаем
-                bool moveNext = userGroupIDs
+                bool rightsEnabled = userGroupIDs
                     .All(group =>
                     dtAccList.Rows.OfType<DataRow>()
-                        .Any(dataRow => 
+                        .Any(dataRow =>
                         group == Convert.ToInt64(dataRow[Consts.F_USER_ID])
-                        && dataRow[Consts.F_RIGHT_ID].ToString() == "8"
-                        && dataRow[Consts.F_RIGHT_TYPE].ToString() == "2"));
+                        && (ActionType)dataRow[Consts.F_RIGHT_ID] == ActionType.View
+                        && (AccessType)dataRow[Consts.F_RIGHT_TYPE] == AccessType.Grant));
 
-                if(moveNext)
+                if (rightsEnabled)
                     continue;
                 else
                 {
