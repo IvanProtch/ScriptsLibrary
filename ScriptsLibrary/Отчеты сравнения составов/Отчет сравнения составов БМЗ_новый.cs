@@ -1,4 +1,4 @@
-﻿///Скрипт v.3.1 - Добавлены входимости материалов в ближайшие сборки
+﻿//Скрипт v.3.1 - Добавлены входимости материалов в ближайшие сборки
 //Скрипт v.4.0 - Расчет ведется по технологическому составу
 using System;
 using System.Windows.Forms;
@@ -292,9 +292,9 @@ namespace EcoDiffReport
             return item;
         }
 
-        private Dictionary<Tuple<long, long>, Item> GetComposition(IDBObject headerObj, DataTable dtCompos, IUserSession session)
+        private Dictionary<Tuple<long, long, string>, Item> GetComposition(IDBObject headerObj, DataTable dtCompos, IUserSession session)
         {
-            Dictionary<Tuple<long, long>, Item> composition = new Dictionary<Tuple<long, long>, Item>();
+            Dictionary<Tuple<long, long, string>, Item> composition = new Dictionary<Tuple<long, long, string>, Item>();
             var itemsDict = new Tuple<Dictionary<long, Item>, Dictionary<long, Item>>(new Dictionary<long, Item>(), new Dictionary<long, Item>());
 
             Item header = new Item();
@@ -342,12 +342,12 @@ namespace EcoDiffReport
                 {
                     //(по ссылке на объект не удается связать комплектующую со сборкой или деталью, -- ссылка указывает на ид версии базового объекта, а не текущего)
                     //если комплектующая associatedComplectUnit входит в собираемую с тем же названием, что и item в вышестоящую сборку
-                    IEnumerable<string> itemEntersInAsms = item.AmountInAsm.Keys.Select(e => e.Parent.Caption);
+                    IEnumerable<string> itemEntersInAsms = item.AmountInAsm.Keys.Select(e => e.Caption);
 
                     Item associatedComplectUnit = itemsDict.Item2.Values
                         .Where(e => e.ObjectType == _complectUnitType)
                         .Where(e => e.Caption == item.Caption)
-                        .FirstOrDefault(e => e.AmountInAsm.Keys.Select(r => r.Parent.Caption).Where(t => itemEntersInAsms.Contains(t)).Count() > 0);
+                        .FirstOrDefault(e => e.AmountInAsm.Keys.Select(r => r.Caption).Where(t => itemEntersInAsms.Contains(t)).Count() > 0);
 
                     //перезаписываем значения количества для item из данных associatedComplectUnit
                     foreach (Relation item_rwp in item.RelationsWithParent)
@@ -374,7 +374,7 @@ namespace EcoDiffReport
                             if(itemsDict.Item2.TryGetValue(relPart.Parent.ObjectId, out complectUnit))
                             {
                                 complectUnit.SourseOrg = item.SourseOrg;
-                                complectUnit.isCoop = item.isCoop;
+                                //complectUnit.isCoop = item.isCoop;
                                 complectUnit.WriteToReportForcibly = true;
                                 item.LinkToObjId = complectUnit.LinkToObjId;
                             }
@@ -440,26 +440,25 @@ namespace EcoDiffReport
                     //если несколько заготовок используют одинаковый сортамент, то materialId = id_сортамента. cachedItem в этом случае будет сортамент. К сортаменту добавляется количество материала в заготовке использующей этот сортамент.
                     //ключ состоит из ид.ед.изм и materialid, потому что itemsAmount для одного item может быть несколько с разными единицами измерения
 
-                    Item cachedItem;
-                    Tuple<long, long> itemKey = new Tuple<long, long>(itemAmount.Key, item.GetKey());
-                    if (composition.TryGetValue(itemKey, out cachedItem))
+                    Item actualItem;
+                    Tuple<long, long, string> itemKey = new Tuple<long, long, string>(itemAmount.Key, item.GetKey(), item.SourseOrg);
+                    if (composition.TryGetValue(itemKey, out actualItem))
                     {
-                        if (cachedItem.AmountSum != null)
+                        if (actualItem.AmountSum != null)
                         {
-                            cachedItem.AmountSum.Add(AmountItemClone.AmountSum);
+                            actualItem.AmountSum.Add(AmountItemClone.AmountSum);
 
                             //обновляем данные по входямостям в сборки
-                            foreach (KeyValuePair<Relation, MeasuredValue> kic_AmountInAsm in AmountItemClone.AmountInAsm)
+                            foreach (var newItem in AmountItemClone.AmountInAsm)
                             {
-                                MeasuredValue AmountInAsm = null;
-                                if (cachedItem.AmountInAsm.TryGetValue(kic_AmountInAsm.Key, out AmountInAsm))
-                                    cachedItem.AmountInAsm[kic_AmountInAsm.Key].Add(AmountInAsm);
+                                if (actualItem.AmountInAsm.ContainsKey(newItem.Key))
+                                    actualItem.AmountInAsm[newItem.Key].Add(newItem.Value);
                                 else
-                                    cachedItem.AmountInAsm.Add(kic_AmountInAsm.Key, kic_AmountInAsm.Value);
+                                    actualItem.AmountInAsm[newItem.Key] = newItem.Value;
                             }
                         }
                         else
-                            cachedItem.AmountSum = AmountItemClone.AmountSum;
+                            actualItem.AmountSum = AmountItemClone.AmountSum;
                     }
                     else
                     {
@@ -700,7 +699,7 @@ namespace EcoDiffReport
             // Храним пару ид версии объекта + ид. физической величины
             // те объекты у которых посчитали количество
             // состав по извещен
-            Dictionary<Tuple<long, long>, Item> ecoComposition = GetComposition(headerObj, dt, session);
+            Dictionary<Tuple<long, long, string>, Item> ecoComposition = GetComposition(headerObj, dt, session);
 
             //AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
 
@@ -718,7 +717,7 @@ namespace EcoDiffReport
             //AddToLog("Второй состав без извещения " + headerObjBase.ObjectID.ToString());
             session.EditingContextID = 0;
 
-            Dictionary<Tuple<long, long>, Item> baseComposition = GetComposition(headerObjBase, dt, session);
+            Dictionary<Tuple<long, long, string>, Item> baseComposition = GetComposition(headerObjBase, dt, session);
 
             #endregion Второй состав без извещения
 
@@ -740,7 +739,7 @@ namespace EcoDiffReport
                 }
                 else
                 {
-                    var emptyItem = new Tuple<long, long>(0, resItem.Key.Item2);
+                    var emptyItem = new Tuple<long, long, string>(0, resItem.Key.Item2, string.Empty);
                     if (ecoComposition.TryGetValue(emptyItem, out ecoItem))
                     {
                         ecoComposition.Remove(emptyItem);
@@ -972,9 +971,9 @@ namespace EcoDiffReport
                 .OrderBy(e => e.SourseOrg).ThenBy(e => e.Type).ThenBy(e => e.MaterialCaption)
                 .Where(e => (e.Amount1 != e.Amount2)).ToList();
 
-            var coopComp = reportComp.Where(e => e.isCoop || e.SourseOrg != originOrg).ToList();
+            var coopComp = reportComp.Where(e => e.isCoop || e.SourseOrg != originOrg || e.WriteToReportForcibly).ToList();
 
-            reportComp.RemoveAll(e => e.isCoop || e.SourseOrg != originOrg);
+            reportComp.RemoveAll(e => e.isCoop || e.SourseOrg != originOrg || e.WriteToReportForcibly);
 
             for (int i = 0; i < coopComp.Count; i++)
             {
@@ -1375,11 +1374,11 @@ namespace EcoDiffReport
                 Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> entersInAsmToInit = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
                 foreach (var Amountinasm1 in item.AmountInAsm)
                 {
-                    var asmAmount = Amountinasm1.Key.Parent.AmountSum;
+                    var asmAmount = Amountinasm1.Key.AmountSum;
                         //Amountinasm1.Key.Parent.RelationsWithParent.FirstOrDefault() != null ? Amountinasm1.Key.Parent.AmountSum : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
 
                     var _null = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
-                    entersInAsmToInit[Amountinasm1.Key.Parent.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null,
+                    entersInAsmToInit[Amountinasm1.Key.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null,
                         asmAmount != null ? asmAmount : _null);
                 }
                 return entersInAsmToInit;
@@ -1501,6 +1500,9 @@ namespace EcoDiffReport
 
             public Material Combine(Material material)
             {
+                if (material.SourseOrg != this.SourseOrg)
+                    return this;
+
                 if (this.MaterialCode.Length > 0)
                     this.MaterialCode = material.MaterialCode;
 
@@ -1715,7 +1717,7 @@ namespace EcoDiffReport
         /// <summary>
         /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи
         /// </summary>
-        public Dictionary<Relation, MeasuredValue> AmountInAsm
+        public Dictionary<Item, MeasuredValue> AmountInAsm
         {
             get
             {
@@ -1725,12 +1727,17 @@ namespace EcoDiffReport
                     {
                         if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/)).ObjectTypeID)
                         {
-                            _AmountInAsm.Add(rel, rel.Amount);
+                            if(!_AmountInAsm.ContainsKey(rel.Parent))
+                                _AmountInAsm[rel.Parent] = rel.Amount;
+
                             return _AmountInAsm;
                         }
 
                         if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID)
-                            _AmountInAsm.Add(rel, rel.Amount);
+                        {
+                            if(!_AmountInAsm.ContainsKey(rel.Parent))
+                                _AmountInAsm[rel.Parent] = rel.Amount;
+                        }
                         else
                         {
                             var nextAsms = rel.Parent.AmountInAsm;
@@ -1758,7 +1765,7 @@ namespace EcoDiffReport
 
         public bool HasEmptyAmount = false;
 
-        private Dictionary<Relation, MeasuredValue> _AmountInAsm = new Dictionary<Relation, MeasuredValue>();
+        private Dictionary<Item, MeasuredValue> _AmountInAsm = new Dictionary<Item, MeasuredValue>();
 
         public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
         {

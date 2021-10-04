@@ -42,16 +42,16 @@
   </Class>
   <Class Name="EcoDiffReport.Item">
     <Position X="2.25" Y="2.5" Width="2" />
-    <AssociationLine Name="AmountInAsm" Type="Intermech.Interfaces.MeasuredValue">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.11" Y="-0.273" />
-      </MemberNameLabel>
-    </AssociationLine>
     <AssociationLine Name="RelationsWithChild" Type="EcoDiffReport.Relation" FixedFromPoint="true">
       <Path>
         <Point X="4.25" Y="4.75" />
         <Point X="8" Y="4.75" />
       </Path>
+    </AssociationLine>
+    <AssociationLine Name="AmountInAsm" Type="Intermech.Interfaces.MeasuredValue">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.11" Y="-0.273" />
+      </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
       <HashCode>QAACgAQIgAgABAAGgAQACAQAAABhAAAALIAAABCAABA=</HashCode>
