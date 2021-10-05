@@ -376,7 +376,9 @@ namespace EcoDiffReport
                                 complectUnit.SourseOrg = item.SourseOrg;
                                 //complectUnit.isCoop = item.isCoop;
                                 complectUnit.WriteToReportForcibly = true;
-                                item.LinkToObjId = complectUnit.LinkToObjId;
+                                //item.LinkToObjId = complectUnit.LinkToObjId;
+                                complectUnit.LinkToMaterial = item.MaterialId;
+                                item.LinkToMaterial = item.MaterialId;
                             }
                         }
                     }
@@ -755,11 +757,24 @@ namespace EcoDiffReport
                 resultComposition.Add(material);
             }
 
+            resultComposition = resultComposition
+                .Where(e => (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
+                .ToList();
+
+            var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMat).ToList();
+
+            foreach (var ecoItem in ecoComposition)
+            {
+                //добавляем детали связанные с заготовками принудительно:
+                if (ecoItem.Value.WriteToReportForcibly && ecoItem.Value.SourseOrg != originOrg)
+                {
+                    if (!resultComposition.Select(e => e.MaterialId).ToList().Contains(ecoItem.Value.LinkToMaterial))
+                        resultComposition.Add(new Material(null, ecoItem.Value));
+                }
+            }
+
             #endregion Итоговый состав материалов
 
-            resultComposition = resultComposition
-                .Where(e => e.WriteToReportForcibly || (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
-                .ToList();
 
             #region Изменение групп заменителей
 
@@ -895,10 +910,10 @@ namespace EcoDiffReport
                     if (attrValue is string)
                         sourseOrg = attrValue.ToString();
 
-                    var materials = resultComposition.Where(x => (x.LinkToObj == id && x.Type != _zagotType) || x.MaterialId == id);
+                    var materials = resultComposition.Where(x => (x.LinkToObj == id) || x.MaterialId == id);
                     foreach (var mat in materials)
                     {
-                        if (mat != null && (isPurchased || isCoop))
+                        if (mat != null && (isPurchased || isCoop || mat.WriteToReportForcibly))
                         {
                             mat.isCoop = isCoop;
                             mat.isPurchased = isPurchased;
@@ -937,11 +952,11 @@ namespace EcoDiffReport
             reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption && e.EdIzm == i.EdIzm) > 1);
 
             foreach (var item in reportComp)
-            {
+           {
                 //для объектов из других организаций
-                if ((item.isCoop && (item.Type == _complectUnitType || item.Type == _partType))
+                if ((item.SourseOrg != originOrg && (item.Type == _complectUnitType || item.Type == _partType))
                     || (item.SourseOrg != originOrg && item.Type == _zagotType))
-                    item.MaterialCode += "\nот " + item.SourseOrg;
+                    item.MaterialCode += "\nот "+item.SourseOrg;
 
                 ////оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
                 //var keys1 = item.EntersInAsm1.Keys.ToList();
@@ -968,30 +983,10 @@ namespace EcoDiffReport
             }
 
             reportComp = reportComp
-                .OrderBy(e => e.SourseOrg).ThenBy(e => e.Type).ThenBy(e => e.MaterialCaption)
+
+                .OrderBy(e => e.LinkToMat).ThenByDescending(e => e.Type)
+
                 .Where(e => (e.Amount1 != e.Amount2)).ToList();
-
-            var coopComp = reportComp.Where(e => e.isCoop || e.SourseOrg != originOrg || e.WriteToReportForcibly).ToList();
-
-            reportComp.RemoveAll(e => e.isCoop || e.SourseOrg != originOrg || e.WriteToReportForcibly);
-
-            for (int i = 0; i < coopComp.Count; i++)
-            {
-                if (coopComp[i].Type == _zagotType)
-                {
-                    Material part = coopComp.FirstOrDefault(e => e.Type == _complectUnitType && e.LinkToObj == coopComp[i].LinkToObj);
-                    int partInd = 0;
-                    if (part != null)
-                        partInd = coopComp.IndexOf(part);
-                    else continue;
-
-                    var temp = coopComp[i-1];
-                    coopComp[i-1] = coopComp[partInd];
-                    coopComp[partInd] = temp;
-                }
-            }
-
-            reportComp.AddRange(coopComp);
 
             if (writeTestingData)
             {
@@ -1319,7 +1314,7 @@ namespace EcoDiffReport
                 isCoop = item.isCoop;
                 SourseOrg = item.SourseOrg;
                 WriteToReportForcibly = item.WriteToReportForcibly;
-
+                LinkToMat = item.LinkToMaterial;
                 if (baseItem != null)
                 {
                     HasEmptyAmount1 = item.HasEmptyAmount;
@@ -1392,6 +1387,7 @@ namespace EcoDiffReport
             public string MaterialCaption;
             public string Caption = string.Empty;
             public string SourseOrg;
+            public long LinkToMat;
             public int Type;
             public long LinkToObj;
             public bool WriteToReportForcibly = false;
@@ -1502,9 +1498,6 @@ namespace EcoDiffReport
             {
                 if (material.SourseOrg != this.SourseOrg)
                     return this;
-
-                if (this.MaterialCode.Length > 0)
-                    this.MaterialCode = material.MaterialCode;
 
                 //if (material.SourseOrg != "БМЗ")
                 //    this.SourseOrg = material.SourseOrg;
@@ -1693,6 +1686,7 @@ namespace EcoDiffReport
             clone.isCoop = isCoop;
             clone.SourseOrg = SourseOrg;
             clone.WriteToReportForcibly = WriteToReportForcibly;
+            clone.LinkToMaterial = LinkToMaterial;
             return clone;
         }
         public bool WriteToReportForcibly = false;
@@ -1708,7 +1702,7 @@ namespace EcoDiffReport
         public string Caption;
         public long LinkToObjId;
         public int ObjectType;
-
+        public long LinkToMaterial;
         //группы замен
         public int ReplacementGroup = -1;
         public bool isActualReplacement = false;
@@ -1725,15 +1719,8 @@ namespace EcoDiffReport
                 {
                     foreach (var rel in RelationsWithParent)
                     {
-                        if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/)).ObjectTypeID)
-                        {
-                            if(!_AmountInAsm.ContainsKey(rel.Parent))
-                                _AmountInAsm[rel.Parent] = rel.Amount;
-
-                            return _AmountInAsm;
-                        }
-
-                        if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID)
+                        if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID ||
+                            rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/)).ObjectTypeID)
                         {
                             if(!_AmountInAsm.ContainsKey(rel.Parent))
                                 _AmountInAsm[rel.Parent] = rel.Amount;
@@ -1743,7 +1730,11 @@ namespace EcoDiffReport
                             var nextAsms = rel.Parent.AmountInAsm;
                             foreach (var na in nextAsms)
                             {
-                                _AmountInAsm[na.Key] = rel.Amount;
+                                //если находим повтор вхождения, складываем количества материала
+                                if (!_AmountInAsm.ContainsKey(na.Key))
+                                    _AmountInAsm[na.Key] = rel.Amount;
+                                else if(_AmountInAsm[na.Key] != null && rel.Amount != null && _AmountInAsm[na.Key].MeasureID == rel.Amount.MeasureID)
+                                    _AmountInAsm[na.Key].Add(rel.Amount);
                             }
                         }
                     }
