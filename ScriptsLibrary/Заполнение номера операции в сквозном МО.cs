@@ -20,7 +20,7 @@ public class Script
         foreach (var attachment in activity.Attachments)
         {
             List<IDBObject> techProcesses = LoadItems(activity.Session, attachment.ObjectID,
-                new List<int>() { MetaDataHelper.GetRelationTypeID(new Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)), 1 },
+                new List<int>() { MetaDataHelper.GetRelationTypeID(new Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)), 1, 1007 },
                 MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00185-306c-11d8-b4e9-00304f19f545" /*Техпроцесс базовый*/)),
                 -1);
 
@@ -51,12 +51,15 @@ public class Script
                     continue;
 
                 foreach (var operation in techOperations)
-                { 
+                {
                     var operationNo = operation.GetAttributeByGuid(new Guid("cad009e6-306c-11d8-b4e9-00304f19f545" /*Номер объекта*/)).Value;
 
                     string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeDescCounts[workTypeDescription], operationNo);
 
-                    operation.GetAttributeByGuid(new Guid("a6b34136-17d9-480e-8658-29642e557591" /*Номер операции для ERP*/)).Value = operationNoInMO;
+                    var attr = operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/));
+
+                    if (attr.AsString != operationNoInMO)
+                        attr.Value = operationNoInMO;
                 }
             }
         }

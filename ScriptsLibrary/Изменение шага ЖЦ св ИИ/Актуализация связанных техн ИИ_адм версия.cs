@@ -352,10 +352,10 @@ using Intermech.Interfaces.Compositions;
                                         }
                                         catch (KernelException exc)
                                         {
-                                            FinalMessage += string.Format("При переводе {0} на шаг 'Актуализация' возникла системная ошибка: \r\n" +
+                                            FinalMessage += string.Format("При переводе {0}({3}) на шаг 'Актуализация' возникла системная ошибка: \r\n" +
                                             "Источник: {1}; \r\n" +
                                             "Сообщение: {2}; \r\n",
-                                            obj.NameInMessages, exc.Source, exc.Message);
+                                            obj.NameInMessages, exc.Source, exc.Message, item);
                                         }
                                     }
                                 }
