@@ -53,15 +53,19 @@ public class Script
                 foreach (var operation in techOperations)
                 {
                     var operationNo = operation.GetAttributeByGuid(new Guid("cad009e6-306c-11d8-b4e9-00304f19f545" /*Номер объекта*/)).Value;
-
                     string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeDescCounts[workTypeDescription], operationNo);
 
                     var opAttr = operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/));
 
-                    var normForOper = LoadItems(activity.Session, operation.ObjectID,
+					var normForOperList = LoadItems(activity.Session, operation.ObjectID,
                     new List<int>() { MetaDataHelper.GetRelationTypeID(new Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)) },
                     new List<int>() { MetaDataHelper.GetObjectTypeID(new Guid("cad005c2-306c-11d8-b4e9-00304f19f545" /*Нормирование на операцию*/)) },
-                    -1).FirstOrDefault();
+                    -1);
+
+                    if (normForOperList == null)
+                        continue;
+
+                    var normForOper = normForOperList.FirstOrDefault();
 
                     var normObjAttr = normForOper != null ? normForOper.GetAttributeByGuid(new Guid("cadd93a5-306c-11d8-b4e9-00304f19f545" /*Штучно-калькуляционное время*/)) : null;
 

@@ -30,7 +30,7 @@ namespace EcoDiffReport
 
         public ScriptResult Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
         {
-            Report report = new Report() { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/ compliteReport = true,
+            Report report = new Report() { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/ compliteReport = false,
              originOrg = "БМЗ"};
             report.Run(session, document, objectIDs);
 
@@ -85,7 +85,7 @@ namespace EcoDiffReport
         /// <param name="itemsDict">Кортеж словарей в который будут заноситься objectid и Item; linkToObjId и Item. Организует иерархическую связь между Item.</param>
         /// <param name="contextMode"></param>
         /// <returns></returns>
-        private Item GetItem(DataRow row, Tuple<Dictionary<long, Item>, Dictionary<long, Item>> itemsDict, bool contextMode)
+        private Item GetItem(DataRow row, Tuple<Dictionary<long, Item>, Dictionary<long, Item>> itemsDict, bool contextMode, CompositionType compositionType)
         {
             Item item = null;
 
@@ -291,8 +291,13 @@ namespace EcoDiffReport
             //AddToLog("CreateLink " + lnk.ToString());
             return item;
         }
+        public enum CompositionType
+        {
+            construction = 1,
+            technology = 2
+        }
 
-        private Dictionary<Tuple<long, long, string>, Item> GetComposition(IDBObject headerObj, DataTable dtCompos, IUserSession session)
+        private Dictionary<Tuple<long, long, string>, Item> GetComposition(IDBObject headerObj, DataTable dtCompos, IUserSession session, CompositionType compositionType = CompositionType.technology)
         {
             Dictionary<Tuple<long, long, string>, Item> composition = new Dictionary<Tuple<long, long, string>, Item>();
             var itemsDict = new Tuple<Dictionary<long, Item>, Dictionary<long, Item>>(new Dictionary<long, Item>(), new Dictionary<long, Item>());
@@ -310,7 +315,7 @@ namespace EcoDiffReport
                 //    row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
                 //    continue;
 
-                Item item = GetItem(row, itemsDict, true);
+                Item item = GetItem(row, itemsDict, true, compositionType);
             }
 
             itemsDict.Item1.Remove(headerObj.ObjectID);
@@ -473,7 +478,9 @@ namespace EcoDiffReport
             }
 
             //отдельно считаем сборки и собираемые, чтобы не вносить изменения в расчет материалов:
-            foreach (var asm in itemsDict.Item1.Values.Where(e => e.ObjectType == _asmUnitType || e.ObjectType == _CEType))
+            foreach (var asm in itemsDict.Item1.Values.Where(e => e.ObjectType == _asmUnitType || e.ObjectType == _CEType
+            //|| MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)).Contains(e.ObjectType)
+            ))
             {
                 Tuple<string, string> exceptionInfo = null;
                 bool hasContextObjects = false;
@@ -595,6 +602,8 @@ namespace EcoDiffReport
             rels.Add(MetaDataHelper.GetRelationTypeID("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/));
             rels.Add(MetaDataHelper.GetRelationTypeID("cad00023-306c-11d8-b4e9-00304f19f545" /*Состоит из*/));
 
+            rels.Add(MetaDataHelper.GetRelationTypeID("cad0036b-306c-11d8-b4e9-00304f19f545" /*Изменяется по извещению*/));
+
             List<ColumnDescriptor> columns = new List<ColumnDescriptor>();
 
             int attrId = (Int32)ObligatoryObjectAttributes.CAPTION;
@@ -710,6 +719,20 @@ namespace EcoDiffReport
 
             #endregion Первый состав по извещению
 
+            #region Состав по извещения
+
+            dt = DataHelper.GetChildSostavData(new List<ObjInfoItem>() { new ObjInfoItem(ecoObj.ObjectID) }, session, rels, -1, dbrsp, null,
+            Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
+
+            // Храним пару ид версии объекта + ид. физической величины
+            // те объекты у которых посчитали количество
+            // состав по извещен
+            Dictionary<Tuple<long, long, string>, Item> eco = GetComposition(headerObj, dt, session);
+
+            //AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
+
+            #endregion Первый состав по извещению
+
             //сохраняем контекст редактирования
             long sessionid = session.EditingContextID;
             session.EditingContextID = 0;
@@ -770,26 +793,34 @@ namespace EcoDiffReport
                 if (material.Type == _zagotType && material.SourseOrg != originOrg)
                 {
                     Item complectUnit_eco = null;
+                    Item zag_eco = null;
                     foreach (var zag in material.ecoItem.AssociatedItemsAndSelf)
                     {
+                        Item part = zag.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
 
-                        var relMO = zag.RelationsWithParent.FirstOrDefault();
-                        if (relMO != null)
+                        complectUnit_eco = eco.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
+                        zag_eco = complectUnit_eco != null ? null : eco.Values.FirstOrDefault(e => e.ObjectId == zag.ObjectId);
+                        if (complectUnit_eco != null)
                         {
-                            var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
-                            if (relPart != null)
-                            {
-                                Item part = relPart.Parent;
-                                complectUnit_eco = ecoComposition.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
+                            complectUnit_eco.SourseOrg = material.SourseOrg;
+                            complectUnit_eco.WriteToReportForcibly = true;
+                            complectUnit_eco.LinkToMaterial = material.MaterialId;
+                            material.LinkToMaterial = material.MaterialId;
+                        }
+                        if (zag_eco != null)
+                        {
+                            complectUnit_eco = zag_eco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
 
-                                if (complectUnit_eco != null)
-                                {
-                                    complectUnit_eco.SourseOrg = material.SourseOrg;
-                                    complectUnit_eco.WriteToReportForcibly = true;
-                                    complectUnit_eco.LinkToMaterial = material.MaterialId;
-                                    material.LinkToMaterial = material.MaterialId;
-                                }
-                            }
+                            complectUnit_eco.SourseOrg = material.SourseOrg;
+                            complectUnit_eco.WriteToReportForcibly = true;
+                            complectUnit_eco.LinkToMaterial = material.MaterialId;
+                            material.LinkToMaterial = material.MaterialId;
+                            complectUnit_eco.LinkToObjId = complectUnit_eco.ObjectId;
+
+                            Tuple<string, string> exceptionInfo = null;
+                            bool hasContextObjects = false;
+
+                            complectUnit_eco.AmountSum = complectUnit_eco.GetAmount(false, ref hasContextObjects, ref complectUnit_eco.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
                         }
 
                         if (complectUnit_eco != null)
@@ -877,6 +908,8 @@ namespace EcoDiffReport
                 .Where(e => e.Type == _zagotType)
                 .Select(e => e.MaterialId));
 
+            resultCompIds = resultCompIds.Distinct().ToList();
+
 
             #region Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
@@ -947,7 +980,7 @@ namespace EcoDiffReport
                     if (attrValue is string)
                         sourseOrg = attrValue.ToString();
 
-                    var materials = resultComposition.Where(x => (x.LinkToObj == id) || x.MaterialId == id);
+                    var materials = resultComposition.Where(x =>(x.LinkToObj == id) || x.MaterialId == id);
                     foreach (var mat in materials)
                     {
                         if (mat != null && (isPurchased || isCoop || mat.WriteToReportForcibly))
@@ -991,7 +1024,8 @@ namespace EcoDiffReport
             foreach (var item in reportComp)
            {
                 //для объектов из других организаций
-                if ((item.SourseOrg != originOrg && (item.Type == _complectUnitType || item.Type == _partType))
+                if ((item.SourseOrg != originOrg && (item.Type == _complectUnitType 
+                    || MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)).Contains(item.Type)))
                     || (item.SourseOrg != originOrg && item.Type == _zagotType))
                     item.MaterialCode += "\nот "+item.SourseOrg;
 
@@ -1263,41 +1297,46 @@ namespace EcoDiffReport
 
                     if (item.HasEmptyAmount1 || item.HasEmptyAmount2)
                     {
-                        (node as RectangleElement).AssignLeftBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (node as RectangleElement).AssignRightBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (node as RectangleElement).AssignTopBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (node as RectangleElement).AssignBottomBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        //AddToLog("item.HasEmptyAmount  " + item.ToString());
-                        foreach (DocumentTreeNode child in node.Nodes)
+                        SelectNodeColor(node, Color.Red, BorderStyles.SolidLine);
+                    }
+                }
+            }
+
+            private void SelectNodeColor(DocumentTreeNode node, Color color, BorderStyles borderStyle)
+            {
+                (node as RectangleElement).AssignLeftBorderLine(
+                new BorderLine(color, borderStyle, 1), false);
+                (node as RectangleElement).AssignRightBorderLine(
+                new BorderLine(color, borderStyle, 1), false);
+                (node as RectangleElement).AssignTopBorderLine(
+                new BorderLine(color, borderStyle, 1), false);
+                (node as RectangleElement).AssignBottomBorderLine(
+                new BorderLine(color, borderStyle, 1), false);
+                //AddToLog("item.HasEmptyAmount  " + item.ToString());
+                foreach (DocumentTreeNode child in node.Nodes)
+                {
+                    (child as RectangleElement).AssignLeftBorderLine(
+                    new BorderLine(color, borderStyle, 1), false);
+                    (child as RectangleElement).AssignRightBorderLine(
+                    new BorderLine(color, borderStyle, 1), false);
+                    (child as RectangleElement).AssignTopBorderLine(
+                    new BorderLine(color, borderStyle, 1), false);
+                    (child as RectangleElement).AssignBottomBorderLine(
+                    new BorderLine(color, borderStyle, 1), false);
+                    if (child is TextData)
+                    {
+                        //AddToLog("child  id = " + child.Id);
+                        if ((child as TextData).CharFormat != null)
                         {
-                            (child as RectangleElement).AssignLeftBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            (child as RectangleElement).AssignRightBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            (child as RectangleElement).AssignTopBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            (child as RectangleElement).AssignBottomBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            if (child is TextData)
-                            {
-                                //AddToLog("child  id = " + child.Id);
-                                if ((child as TextData).CharFormat != null)
-                                {
-                                    CharFormat cf = (child as TextData).CharFormat.Clone();
-                                    cf.TextColor = Color.Red;
-                                    cf.CharStyle = CharStyle.Bold;
-                                    //AddToLog("SetCharFormat");
-                                    (child as TextData).SetCharFormat(cf, false, false);
-                                }
-                                else
-                                {
-                                    //AddToLog("(child as TextData).CharFormat == null");
-                                }
-                            }
+                            CharFormat cf = (child as TextData).CharFormat.Clone();
+                            cf.TextColor = color;
+                            cf.CharStyle = CharStyle.Bold;
+                            //AddToLog("SetCharFormat");
+                            (child as TextData).SetCharFormat(cf, false, false);
+                        }
+                        else
+                        {
+                            //AddToLog("(child as TextData).CharFormat == null");
                         }
                     }
                 }
@@ -1892,3 +1931,4 @@ namespace EcoDiffReport
         };
     }
 }
+
