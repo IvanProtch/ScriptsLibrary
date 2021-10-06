@@ -361,28 +361,30 @@ namespace EcoDiffReport
                         item_rwp.Amount = associatedItem_rwp != null ? associatedItem_rwp.Amount : item_rwp.Amount;
                     }
                 }
-                //для заготовок находим компл ед, записываем ту же организацию
-                if(item.ObjectType == _zagotType)
-                {
-                    var relMO = item.RelationsWithParent.FirstOrDefault();
-                    if(relMO != null)
-                    {
-                        var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
-                        if(relPart != null)
-                        {
-                            Item complectUnit;
-                            if(itemsDict.Item2.TryGetValue(relPart.Parent.ObjectId, out complectUnit))
-                            {
-                                complectUnit.SourseOrg = item.SourseOrg;
-                                //complectUnit.isCoop = item.isCoop;
-                                complectUnit.WriteToReportForcibly = true;
-                                //item.LinkToObjId = complectUnit.LinkToObjId;
-                                complectUnit.LinkToMaterial = item.MaterialId;
-                                item.LinkToMaterial = item.MaterialId;
-                            }
-                        }
-                    }
-                }
+
+                ////для заготовок находим компл ед, записываем ту же организацию
+                //if(item.ObjectType == _zagotType)
+                //{
+                //    var relMO = item.RelationsWithParent.FirstOrDefault();
+                //    if(relMO != null)
+                //    {
+                //        var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
+                //        if(relPart != null)
+                //        {
+                //            Item complectUnit;
+                //            if(itemsDict.Item2.TryGetValue(relPart.Parent.ObjectId, out complectUnit))
+                //            {
+                //                complectUnit.SourseOrg = item.SourseOrg;
+                //                //complectUnit.isCoop = item.isCoop;
+                //                complectUnit.WriteToReportForcibly = true;
+                //                //item.LinkToObjId = complectUnit.LinkToObjId;
+                //                complectUnit.LinkToMaterial = item.MaterialId;
+                //                item.LinkToMaterial = item.MaterialId;
+                //            }
+                //        }
+                //    }
+                //}
+
                 //if (item is ComplexMaterialItem)
                 //{
                 //    ComplexMaterialItem complexMaterial = item as ComplexMaterialItem;
@@ -448,6 +450,7 @@ namespace EcoDiffReport
                     {
                         if (actualItem.AmountSum != null)
                         {
+                            actualItem.AssociatedItemsAndSelf.Add(AmountItemClone);
                             actualItem.AmountSum.Add(AmountItemClone.AmountSum);
 
                             //обновляем данные по входямостям в сборки
@@ -729,7 +732,6 @@ namespace EcoDiffReport
             #region Итоговый состав материалов
 
             List<Material> resultComposition = new List<Material>();
-
             foreach (var resItem in baseComposition)
             {
                 
@@ -751,9 +753,9 @@ namespace EcoDiffReport
                 Material material = new Material(resItem.Value, ecoItem);
                 resultComposition.Add(material);
             }
-            foreach (var ecoItem in ecoComposition)
+            foreach (var ecoItem in ecoComposition.Values)
             {
-                Material material = new Material(null, ecoItem.Value);
+                Material material = new Material(null, ecoItem);
                 resultComposition.Add(material);
             }
 
@@ -761,17 +763,52 @@ namespace EcoDiffReport
                 .Where(e => (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
                 .ToList();
 
-            var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMat).ToList();
-
-            foreach (var ecoItem in ecoComposition)
+            List<Material> complectUnits_zag = new List<Material>();
+            foreach (var material in resultComposition)
             {
-                //добавляем детали связанные с заготовками принудительно:
-                if (ecoItem.Value.WriteToReportForcibly && ecoItem.Value.SourseOrg != originOrg)
+                //для заготовок чужих организаций находим компл ед, записываем ту же организацию, группирующее значение, принудительно добавляем в отчет
+                if (material.Type == _zagotType && material.SourseOrg != originOrg)
                 {
-                    if (!resultComposition.Select(e => e.MaterialId).ToList().Contains(ecoItem.Value.LinkToMaterial))
-                        resultComposition.Add(new Material(null, ecoItem.Value));
+                    Item complectUnit_eco = null;
+                    foreach (var zag in material.ecoItem.AssociatedItemsAndSelf)
+                    {
+
+                        var relMO = zag.RelationsWithParent.FirstOrDefault();
+                        if (relMO != null)
+                        {
+                            var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
+                            if (relPart != null)
+                            {
+                                Item part = relPart.Parent;
+                                complectUnit_eco = ecoComposition.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
+
+                                if (complectUnit_eco != null)
+                                {
+                                    complectUnit_eco.SourseOrg = material.SourseOrg;
+                                    complectUnit_eco.WriteToReportForcibly = true;
+                                    complectUnit_eco.LinkToMaterial = material.MaterialId;
+                                    material.LinkToMaterial = material.MaterialId;
+                                }
+                            }
+                        }
+
+                        if (complectUnit_eco != null)
+                            complectUnits_zag.Add(new Material(null, complectUnit_eco));
+                    }
                 }
             }
+            resultComposition.AddRange(complectUnits_zag);
+            //var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMaterial).ToList();
+
+            //foreach (var ecoItem in ecoComposition)
+            //{
+            //    //добавляем детали связанные с заготовками принудительно:
+            //    if (ecoItem.Value.WriteToReportForcibly && ecoItem.Value.SourseOrg != originOrg)
+            //    {
+            //        if (!resultComposition.Select(e => e.MaterialId).ToList().Contains(ecoItem.Value.LinkToMaterial))
+            //            resultComposition.Add(new Material(null, ecoItem.Value));
+            //    }
+            //}
 
             #endregion Итоговый состав материалов
 
@@ -984,9 +1021,9 @@ namespace EcoDiffReport
 
             reportComp = reportComp
 
-                .OrderBy(e => e.LinkToMat).ThenByDescending(e => e.Type)
-
-                .Where(e => (e.Amount1 != e.Amount2)).ToList();
+                .OrderBy(e => e.LinkToMaterial).ThenByDescending(e => e.Type)
+                //.Where(e => (e.Amount1 != e.Amount2))
+                .ToList();
 
             if (writeTestingData)
             {
@@ -1303,6 +1340,9 @@ namespace EcoDiffReport
         {
             public Material(Item baseItem, Item ecoItem)
             {
+                this.baseItem = baseItem;
+                this.ecoItem = ecoItem;
+
                 var item = ecoItem == null ? baseItem : ecoItem;
                 MaterialId = item.MaterialId;
                 MaterialCaption = item.Caption;
@@ -1314,7 +1354,7 @@ namespace EcoDiffReport
                 isCoop = item.isCoop;
                 SourseOrg = item.SourseOrg;
                 WriteToReportForcibly = item.WriteToReportForcibly;
-                LinkToMat = item.LinkToMaterial;
+                LinkToMaterial = item.LinkToMaterial;
                 if (baseItem != null)
                 {
                     HasEmptyAmount1 = item.HasEmptyAmount;
@@ -1381,13 +1421,15 @@ namespace EcoDiffReport
             private string materialCode;
             private string edIzm = string.Empty;
 
+            public Item baseItem;
+            public Item ecoItem;
             public bool isPurchased = false;
             public bool isCoop = false;
             public long MaterialId;
             public string MaterialCaption;
             public string Caption = string.Empty;
             public string SourseOrg;
-            public long LinkToMat;
+            public long LinkToMaterial;
             public int Type;
             public long LinkToObj;
             public bool WriteToReportForcibly = false;
@@ -1708,6 +1750,17 @@ namespace EcoDiffReport
         public bool isActualReplacement = false;
         public bool isPossableReplacement = false;
 
+        private List<Item> _associatedItemsAndSelf = new List<Item>();
+        public List<Item> AssociatedItemsAndSelf 
+        { 
+            get
+            {
+                if (_associatedItemsAndSelf.Count == 0)
+                    _associatedItemsAndSelf.Add(this);
+
+                   return _associatedItemsAndSelf;
+            } 
+        }
         /// <summary>
         /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи
         /// </summary>
