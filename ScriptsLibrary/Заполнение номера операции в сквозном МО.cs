@@ -56,10 +56,17 @@ public class Script
 
                     string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeDescCounts[workTypeDescription], operationNo);
 
-                    var attr = operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/));
+                    var opAttr = operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/));
 
-                    if (attr.AsString != operationNoInMO)
-                        attr.Value = operationNoInMO;
+                    var normForOper = LoadItems(activity.Session, operation.ObjectID,
+                    new List<int>() { MetaDataHelper.GetRelationTypeID(new Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)) },
+                    new List<int>() { MetaDataHelper.GetObjectTypeID(new Guid("cad005c2-306c-11d8-b4e9-00304f19f545" /*Нормирование на операцию*/)) },
+                    -1).FirstOrDefault();
+
+                    var normObjAttr = normForOper != null ? normForOper.GetAttributeByGuid(new Guid("cadd93a5-306c-11d8-b4e9-00304f19f545" /*Штучно-калькуляционное время*/)) : null;
+
+                    if (string.IsNullOrWhiteSpace(opAttr.AsString) && !string.IsNullOrWhiteSpace(normObjAttr != null ? normObjAttr.AsString : string.Empty))
+                        opAttr.Value = operationNoInMO;
                 }
             }
         }
