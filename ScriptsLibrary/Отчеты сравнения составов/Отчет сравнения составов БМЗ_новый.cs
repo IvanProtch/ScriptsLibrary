@@ -845,55 +845,6 @@ namespace EcoDiffReport
                     matPartPairs[zgMat] = parts;
             }
 
-            #endregion
-
-            //.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent
-            //foreach (var material in resultComposition)
-            //{
-            //    //для заготовок чужих организаций находим компл ед, записываем ту же организацию, группирующее значение, принудительно добавляем в отчет
-            //    if (material.Type == _zagotType && material.SourseOrg != originOrg)
-            //    {
-            //        Item complectUnit_eco = null;
-            //        Item zag_eco = null;
-            //        foreach (var zag in material.ecoItem.AssociatedItemsAndSelf)
-            //        {
-            //            Item part = zag.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
-
-            //            complectUnit_eco = ecoComposition.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
-            //            zag_eco = complectUnit_eco != null ? null : ecoComposition.Values.FirstOrDefault(e => e.ObjectId == zag.ObjectId);
-            //            if (complectUnit_eco != null)
-            //            {
-            //                complectUnit_eco.SourseOrg = material.SourseOrg;
-            //                complectUnit_eco.WriteToReportForcibly = true;
-            //                complectUnit_eco.LinkToMaterial = material.MaterialId;
-            //                material.LinkToMaterial = material.MaterialId;
-            //            }
-            //            if (zag_eco != null)
-            //            {
-            //                complectUnit_eco = zag_eco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
-
-            //                complectUnit_eco.SourseOrg = material.SourseOrg;
-            //                complectUnit_eco.WriteToReportForcibly = true;
-            //                complectUnit_eco.LinkToMaterial = material.MaterialId;
-            //                material.LinkToMaterial = material.MaterialId;
-            //                complectUnit_eco.LinkToObjId = complectUnit_eco.ObjectId;
-
-            //                Tuple<string, string> exceptionInfo = null;
-            //                bool hasContextObjects = false;
-
-            //                complectUnit_eco.AmountSum = complectUnit_eco.GetAmount(false, ref hasContextObjects, ref complectUnit_eco.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
-            //            }
-
-            //            if (complectUnit_eco != null)
-            //                complectUnits_zag.Add(new Material(null, complectUnit_eco));
-            //        }
-            //    }
-            //}
-            //resultComposition.AddRange(complectUnits_zag);
-
-
-            //var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMaterial).ToList();
-
             #region Изменение групп заменителей
 
             foreach (var item in resultComposition)
@@ -1504,8 +1455,9 @@ namespace EcoDiffReport
             }
             private Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> _amountAsmInit(Item item)
             {
+                var empty = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
                 Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> entersInAsmToInit = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
-                foreach (var Amountinasm1 in item.AmountInAsm)
+                foreach (var asm in item.EntersInAsms)
                 {
                     var asmAmount = asm.Value.AmountSum;
                     //var itemAmount = this.AmountToItem(item, asm.Value);
@@ -1523,9 +1475,9 @@ namespace EcoDiffReport
                     entersInAsmToInit[asm.Value.Caption] = new Tuple<MeasuredValue, MeasuredValue>(itemAmount == null ? empty : itemAmount, asmAmount == null ? empty : asmAmount);
                     //Amountinasm1.Key.Parent.RelationsWithParent.FirstOrDefault() != null ? Amountinasm1.Key.Parent.AmountSum : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
 
-                    var _null = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
-                    entersInAsmToInit[Amountinasm1.Key.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null,
-                        asmAmount != null ? asmAmount : _null);
+                    //var _null = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
+                    //entersInAsmToInit[Amountinasm1.Key.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null,
+                    //    asmAmount != null ? asmAmount : _null);
                 }
                 return entersInAsmToInit;
             }
@@ -1729,21 +1681,21 @@ namespace EcoDiffReport
 
                 //if (!this.isCoop)
                 //    this.SourseOrg = material.SourseOrg;
-                    
-                foreach (var eia1 in material.EntersInAsm1)
+
+                foreach (var eia1 in material.AmountInAsm1)
                 {
-                    if (!this.EntersInAsm1.ContainsKey(eia1.Key))
-                        this.EntersInAsm1.Add(eia1.Key, eia1.Value);
+                    if (!this.AmountInAsm1.ContainsKey(eia1.Key))
+                        this.AmountInAsm1.Add(eia1.Key, eia1.Value);
                     else
-                        this.EntersInAsm1[eia1.Key].Item1.Add(eia1.Value.Item1);
+                        this.AmountInAsm1[eia1.Key].Item1.Add(eia1.Value.Item1);
                 }
 
-                foreach (var eia2 in material.EntersInAsm2)
+                foreach (var eia2 in material.AmountInAsm2)
                 {
-                    if (!this.EntersInAsm2.ContainsKey(eia2.Key))
-                        this.EntersInAsm2.Add(eia2.Key, eia2.Value);
+                    if (!this.AmountInAsm2.ContainsKey(eia2.Key))
+                        this.AmountInAsm2.Add(eia2.Key, eia2.Value);
                     else
-                        this.EntersInAsm2[eia2.Key].Item1.Add(eia2.Value.Item1);
+                        this.AmountInAsm2[eia2.Key].Item1.Add(eia2.Value.Item1);
                 }
                 return this;
             }
@@ -1907,6 +1859,8 @@ namespace EcoDiffReport
             clone.SourseOrg = SourseOrg;
             clone.WriteToReportForcibly = WriteToReportForcibly;
             clone.LinkToMaterial = LinkToMaterial;
+            clone.RelationsWithChild = RelationsWithChild;
+            clone.RelationsWithParent = RelationsWithParent;
             return clone;
         }
         public bool WriteToReportForcibly = false;
@@ -1942,35 +1896,33 @@ namespace EcoDiffReport
         /// <summary>
         /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи
         /// </summary>
-        public Dictionary<Item, MeasuredValue> AmountInAsm
+        public Dictionary<long, Item> EntersInAsms
         {
             get
             {
-                if (_AmountInAsm.Keys.Count == 0)
+                if (_entersInAsms.Keys.Count == 0)
                 {
                     foreach (var rel in RelationsWithParent)
                     {
-                        if (rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID ||
-                            rel.Parent.ObjectType == MetaDataHelper.GetObjectType(new Guid("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/)).ObjectTypeID)
+                        var parent = rel.Parent;
+                        if (parent.ObjectType == MetaDataHelper.GetObjectType(new Guid(SystemGUIDs.objtypeAssemblyUnit)).ObjectTypeID ||
+                            parent.ObjectType == MetaDataHelper.GetObjectType(new Guid("cad00167-306c-11d8-b4e9-00304f19f545" /*Собираемая единица*/)).ObjectTypeID)
                         {
-                            if(!_AmountInAsm.ContainsKey(rel.Parent))
-                                _AmountInAsm[rel.Parent] = rel.Amount;
+                            if (!_entersInAsms.ContainsKey(parent.ObjectId))
+                                _entersInAsms[parent.ObjectId] = parent;
                         }
                         else
                         {
-                            var nextAsms = rel.Parent.AmountInAsm;
-                            foreach (var na in nextAsms)
+                            var nextAsms = rel.Parent.EntersInAsms;
+                            foreach (var nextAsm in nextAsms)
                             {
-                                //если находим повтор вхождения, складываем количества материала
-                                if (!_AmountInAsm.ContainsKey(na.Key))
-                                    _AmountInAsm[na.Key] = rel.Amount;
-                                else if(_AmountInAsm[na.Key] != null && rel.Amount != null && _AmountInAsm[na.Key].MeasureID == rel.Amount.MeasureID)
-                                    _AmountInAsm[na.Key].Add(rel.Amount);
+                                if (!_entersInAsms.ContainsKey(nextAsm.Key))
+                                    _entersInAsms[nextAsm.Key] = nextAsm.Value;
                             }
                         }
                     }
                 }
-                return _AmountInAsm;
+                return _entersInAsms;
             }
         }
 
@@ -1987,7 +1939,7 @@ namespace EcoDiffReport
 
         public bool HasEmptyAmount = false;
 
-        private Dictionary<Item, MeasuredValue> _AmountInAsm = new Dictionary<Item, MeasuredValue>();
+        private Dictionary<long, Item> _entersInAsms = new Dictionary<long, Item>();
 
         public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, Tuple<string, string> exceptionInfo, Item endItem)
         {
