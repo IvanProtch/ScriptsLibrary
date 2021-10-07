@@ -30,11 +30,14 @@
 
 //        public ScriptResult Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
 //        {
-//            Report report = new Report() { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/ compliteReport = true,
-//             originOrg = "БМЗ"};
+//            Report report = new Report()
+//            { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/
+//                compliteReport = true,
+//                originOrg = "БМЗ"
+//            };
 //            report.Run(session, document, objectIDs);
 
-//            if(report.compliteReport)
+//            if (report.compliteReport)
 //                document.UpdateLayout(true);
 
 //            return new ScriptResult(true, document);
@@ -85,7 +88,7 @@
 //        /// <param name="itemsDict">Кортеж словарей в который будут заноситься objectid и Item; linkToObjId и Item. Организует иерархическую связь между Item.</param>
 //        /// <param name="contextMode"></param>
 //        /// <returns></returns>
-//        private Item GetItem(DataRow row, Tuple<Dictionary<long, Item>, Dictionary<long, Item>> itemsDict, bool contextMode)
+//        private Item GetItem(DataRow row, Tuple<Dictionary<long, Item>, Dictionary<long, Item>> itemsDict, bool contextMode, CompositionType compositionType)
 //        {
 //            Item item = null;
 
@@ -214,7 +217,7 @@
 //            itemsDict_byObjId[objectId] = item;
 
 //            //для комплектующих единиц записываем группы замен
-//            if(item.ObjectType == _complectUnitType)
+//            if (item.ObjectType == _complectUnitType)
 //            {
 //                object substituteInGroup = row[Intermech.SystemGUIDs.attributeSubstituteInGroup];
 //                if (substituteInGroup != DBNull.Value)
@@ -291,8 +294,13 @@
 //            //AddToLog("CreateLink " + lnk.ToString());
 //            return item;
 //        }
+//        public enum CompositionType
+//        {
+//            construction = 1,
+//            technology = 2
+//        }
 
-//        private Dictionary<Tuple<long, long, string>, Item> GetComposition(IDBObject headerObj, DataTable dtCompos, IUserSession session)
+//        private Dictionary<Tuple<long, long, string>, Item> GetComposition(IDBObject headerObj, DataTable dtCompos, IUserSession session, CompositionType compositionType = CompositionType.technology)
 //        {
 //            Dictionary<Tuple<long, long, string>, Item> composition = new Dictionary<Tuple<long, long, string>, Item>();
 //            var itemsDict = new Tuple<Dictionary<long, Item>, Dictionary<long, Item>>(new Dictionary<long, Item>(), new Dictionary<long, Item>());
@@ -310,7 +318,7 @@
 //                //    row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
 //                //    continue;
 
-//                Item item = GetItem(row, itemsDict, true);
+//                Item item = GetItem(row, itemsDict, true, compositionType);
 //            }
 
 //            itemsDict.Item1.Remove(headerObj.ObjectID);
@@ -361,26 +369,30 @@
 //                        item_rwp.Amount = associatedItem_rwp != null ? associatedItem_rwp.Amount : item_rwp.Amount;
 //                    }
 //                }
-//                //для заготовок находим компл ед, записываем ту же организацию
-//                if(item.ObjectType == _zagotType)
-//                {
-//                    var relMO = item.RelationsWithParent.FirstOrDefault();
-//                    if(relMO != null)
-//                    {
-//                        var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
-//                        if(relPart != null)
-//                        {
-//                            Item complectUnit;
-//                            if(itemsDict.Item2.TryGetValue(relPart.Parent.ObjectId, out complectUnit))
-//                            {
-//                                complectUnit.SourseOrg = item.SourseOrg;
-//                                //complectUnit.isCoop = item.isCoop;
-//                                complectUnit.WriteToReportForcibly = true;
-//                                item.LinkToObjId = complectUnit.LinkToObjId;
-//                            }
-//                        }
-//                    }
-//                }
+
+//                ////для заготовок находим компл ед, записываем ту же организацию
+//                //if(item.ObjectType == _zagotType)
+//                //{
+//                //    var relMO = item.RelationsWithParent.FirstOrDefault();
+//                //    if(relMO != null)
+//                //    {
+//                //        var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
+//                //        if(relPart != null)
+//                //        {
+//                //            Item complectUnit;
+//                //            if(itemsDict.Item2.TryGetValue(relPart.Parent.ObjectId, out complectUnit))
+//                //            {
+//                //                complectUnit.SourseOrg = item.SourseOrg;
+//                //                //complectUnit.isCoop = item.isCoop;
+//                //                complectUnit.WriteToReportForcibly = true;
+//                //                //item.LinkToObjId = complectUnit.LinkToObjId;
+//                //                complectUnit.LinkToMaterial = item.MaterialId;
+//                //                item.LinkToMaterial = item.MaterialId;
+//                //            }
+//                //        }
+//                //    }
+//                //}
+
 //                //if (item is ComplexMaterialItem)
 //                //{
 //                //    ComplexMaterialItem complexMaterial = item as ComplexMaterialItem;
@@ -416,8 +428,8 @@
 //                    continue;
 
 //                bool hasContextObjects = false;
-                
-//                var itemsAmount = item.GetAmount(true, ref hasContextObjects, ref item.HasEmptyAmount, ref exceptionInfo);
+
+//                var itemsAmount = item.GetAmount(true, ref hasContextObjects, ref item.HasEmptyAmount, ref exceptionInfo, null);
 
 //                if (exceptionInfo.Item2.Length > 0)
 //                {
@@ -446,16 +458,17 @@
 //                    {
 //                        if (actualItem.AmountSum != null)
 //                        {
+//                            actualItem.AssociatedItemsAndSelf.Add(AmountItemClone);
 //                            actualItem.AmountSum.Add(AmountItemClone.AmountSum);
 
-//                            ////обновляем данные по входямостям в сборки
-//                            //foreach (var newItem in AmountItemClone.AmountInAsm)
-//                            //{
-//                            //    if (actualItem.AmountInAsm.ContainsKey(newItem.Key))
-//                            //        actualItem.AmountInAsm[newItem.Key].Item1.Add(newItem.Value.Item1);
-//                            //    else
-//                            //        actualItem.AmountInAsm[newItem.Key] = newItem.Value;
-//                            //}
+//                            //обновляем данные по входямостям в сборки
+//                            foreach (var newItem in AmountItemClone.EntersInAsms)
+//                            {
+//                                if (actualItem.EntersInAsms.ContainsKey(newItem.Key))
+//                                    actualItem.EntersInAsms[newItem.Key] = (newItem.Value);
+//                                else
+//                                    actualItem.EntersInAsms[newItem.Key] = newItem.Value;
+//                            }
 //                        }
 //                        else
 //                            actualItem.AmountSum = AmountItemClone.AmountSum;
@@ -468,11 +481,13 @@
 //            }
 
 //            //отдельно считаем сборки и собираемые, чтобы не вносить изменения в расчет материалов:
-//            foreach (var asm in itemsDict.Item1.Values.Where(e => e.ObjectType == _asmUnitType || e.ObjectType == _CEType))
+//            foreach (var asm in itemsDict.Item1.Values.Where(e => e.ObjectType == _asmUnitType || e.ObjectType == _CEType
+//            //|| MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)).Contains(e.ObjectType)
+//            ))
 //            {
 //                Tuple<string, string> exceptionInfo = null;
 //                bool hasContextObjects = false;
-//                asm.AmountSum = asm.GetAmount(false, ref hasContextObjects, ref asm.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+//                asm.AmountSum = asm.GetAmount(false, ref hasContextObjects, ref asm.HasEmptyAmount, ref exceptionInfo, null).Values.FirstOrDefault();
 //            }
 
 //            return composition;
@@ -584,11 +599,13 @@
 //            bool addBmzFields = true;
 
 //            #region Инициализация запроса к БД
- 
+
 //            List<int> rels = new List<int>();
 
 //            rels.Add(MetaDataHelper.GetRelationTypeID("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/));
 //            rels.Add(MetaDataHelper.GetRelationTypeID("cad00023-306c-11d8-b4e9-00304f19f545" /*Состоит из*/));
+
+//            rels.Add(MetaDataHelper.GetRelationTypeID("cad0036b-306c-11d8-b4e9-00304f19f545" /*Изменяется по извещению*/));
 
 //            List<ColumnDescriptor> columns = new List<ColumnDescriptor>();
 
@@ -705,6 +722,20 @@
 
 //            #endregion Первый состав по извещению
 
+//            #region Состав по извещения
+
+//            dt = DataHelper.GetChildSostavData(new List<ObjInfoItem>() { new ObjInfoItem(ecoObj.ObjectID) }, session, rels, -1, dbrsp, null,
+//            Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
+
+//            // Храним пару ид версии объекта + ид. физической величины
+//            // те объекты у которых посчитали количество
+//            // состав по извещен
+//            Dictionary<Tuple<long, long, string>, Item> eco = GetComposition(headerObj, dt, session);
+
+//            //AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
+
+//            #endregion Первый состав по извещению
+
 //            //сохраняем контекст редактирования
 //            long sessionid = session.EditingContextID;
 //            session.EditingContextID = 0;
@@ -730,7 +761,7 @@
 
 //            foreach (var resItem in baseComposition)
 //            {
-                
+
 //                Item ecoItem;
 //                //Находим базовый объект в списке объектов из извещения
 //                if (ecoComposition.TryGetValue(resItem.Key, out ecoItem))
@@ -760,6 +791,65 @@
 //            resultComposition = resultComposition
 //                .Where(e => e.WriteToReportForcibly || (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
 //                .ToList();
+
+//            List<Material> complectUnits_zag = new List<Material>();
+//            foreach (var material in resultComposition)
+//            {
+//                //для заготовок чужих организаций находим компл ед, записываем ту же организацию, группирующее значение, принудительно добавляем в отчет
+//                if (material.Type == _zagotType && material.SourseOrg != originOrg)
+//                {
+//                    Item complectUnit_eco = null;
+//                    Item zag_eco = null;
+//                    if (material.ecoItem != null)
+//                    {
+//                        foreach (var zag in material.ecoItem.AssociatedItemsAndSelf)
+//                        {
+//                            Item part = zag.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
+
+//                            complectUnit_eco = eco.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
+//                            zag_eco = complectUnit_eco != null ? null : eco.Values.FirstOrDefault(e => e.ObjectId == zag.ObjectId);
+//                            if (complectUnit_eco != null)
+//                            {
+//                                complectUnit_eco.SourseOrg = material.SourseOrg;
+//                                complectUnit_eco.WriteToReportForcibly = true;
+//                                complectUnit_eco.LinkToMaterial = material.MaterialId;
+//                                material.LinkToMaterial = material.MaterialId;
+//                            }
+//                            if (zag_eco != null)
+//                            {
+//                                complectUnit_eco = zag_eco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
+
+//                                complectUnit_eco.SourseOrg = material.SourseOrg;
+//                                complectUnit_eco.WriteToReportForcibly = true;
+//                                complectUnit_eco.LinkToMaterial = material.MaterialId;
+//                                material.LinkToMaterial = material.MaterialId;
+//                                complectUnit_eco.LinkToObjId = complectUnit_eco.ObjectId;
+
+//                                Tuple<string, string> exceptionInfo = null;
+//                                bool hasContextObjects = false;
+
+//                                complectUnit_eco.AmountSum = complectUnit_eco.GetAmount(false, ref hasContextObjects, ref complectUnit_eco.HasEmptyAmount, ref exceptionInfo, null).Values.FirstOrDefault();
+//                            }
+
+//                            if (complectUnit_eco != null)
+//                                complectUnits_zag.Add(new Material(null, complectUnit_eco));
+//                        }
+
+//                    }
+//                }
+//            }
+//            resultComposition.AddRange(complectUnits_zag);
+//            //var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMaterial).ToList();
+
+//            //foreach (var ecoItem in ecoComposition)
+//            //{
+//            //    //добавляем детали связанные с заготовками принудительно:
+//            //    if (ecoItem.Value.WriteToReportForcibly && ecoItem.Value.SourseOrg != originOrg)
+//            //    {
+//            //        if (!resultComposition.Select(e => e.MaterialId).ToList().Contains(ecoItem.Value.LinkToMaterial))
+//            //            resultComposition.Add(new Material(null, ecoItem.Value));
+//            //    }
+//            //}
 
 //            #region Изменение групп заменителей
 
@@ -895,15 +985,15 @@
 //                    if (attrValue is string)
 //                        sourseOrg = attrValue.ToString();
 
-//                    var materials = resultComposition.Where(x => (x.LinkToObj == id && x.Type != _zagotType) || x.MaterialId == id);
+//                    var materials = resultComposition.Where(x => (x.LinkToObj == id) || x.MaterialId == id);
 //                    foreach (var mat in materials)
 //                    {
-//                        if (mat != null && (isPurchased || isCoop))
+//                        if (mat != null && (isPurchased || isCoop || mat.WriteToReportForcibly))
 //                        {
 //                            mat.isCoop = isCoop;
 //                            mat.isPurchased = isPurchased;
 //                            mat.MaterialCode = code;
-//                            if(mat.Type == _zagotType)
+//                            if (mat.Type == _zagotType)
 //                                mat.MaterialCaption = name;
 
 //                            resultComposition_tech.Add(mat);
@@ -939,7 +1029,8 @@
 //            foreach (var item in reportComp)
 //            {
 //                //для объектов из других организаций
-//                if ((item.isCoop && (item.Type == _complectUnitType || item.Type == _partType))
+//                if ((item.SourseOrg != originOrg && (item.Type == _complectUnitType
+//                    || MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)).Contains(item.Type)))
 //                    || (item.SourseOrg != originOrg && item.Type == _zagotType))
 //                    item.MaterialCode += "\nот " + item.SourseOrg;
 
@@ -1087,7 +1178,7 @@
 
 //                            Write(node, "Индекс", N.ToString());
 //                            Write(node, "Код", item.MaterialCode);
-//                            if(item.MaterialCaption.Length != item.Caption.Length)
+//                            if (item.MaterialCaption.Length != item.Caption.Length)
 //                            {
 //                                Write(node, "Материал", item.MaterialCaption, new CharFormat("arial", 10, CharStyle.Italic));
 //                            }
@@ -1356,7 +1447,11 @@
 //                foreach (var asm in item.EntersInAsms)
 //                {
 //                    var asmAmount = asm.Value.AmountSum;
-//                    var itemAmount = this.AmountToItem(item, asm.Value);
+//                    //var itemAmount = this.AmountToItem(item, asm.Value);
+
+//                    Tuple<string, string> exceptionInfo = null;
+//                    bool hasContextObjects = false;
+//                    var itemAmount = item.GetAmount(false, ref hasContextObjects, ref item.HasEmptyAmount, ref exceptionInfo, asm.Value).Values.FirstOrDefault();
 
 //                    //if (asmAmount != null && itemAmount != null)
 //                    //{
@@ -1375,53 +1470,83 @@
 //                return entersInAsmToInit;
 //            }
 
-//            private MeasuredValue AmountToRel(Relation fromRel, Item endItem)
-//            {
-//                var nextItem = fromRel.Parent;
-//                if (nextItem.ObjectId != endItem.ObjectId)
-//                {
-//                    var nextAmount = AmountToItem(nextItem, endItem);
-//                    if (nextAmount != null)
-//                    {
-//                        if (fromRel.Amount != null)
-//                            nextAmount.Multiply(fromRel.Amount);
+//            ////копирует все дерево fromItem до нахождения с endItem, далее считает количество
+//            //private MeasuredValue AmountToItem(Item fromItem, Item endItem)
+//            //{
+//            //    Item fromItemClone = fromItem.Clone(true);
+//            //    TrimTreeOfComposition(fromItemClone, endItem);
 
-//                        return nextAmount;
-//                    }
-//                    else return fromRel.Amount;
-//                }
-//                else
-//                {
-//                    return fromRel.Amount;
-//                }
-//            }
+//            //    Tuple<string, string> exceptionInfo = null;
+//            //    bool hasContextObjects = false;
+//            //    fromItemClone.AmountSum = fromItemClone.GetAmount(false, ref hasContextObjects, ref fromItemClone.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
 
-//            private MeasuredValue AmountToItem(Item fromItem, Item endItem)
-//            {
-//                MeasuredValue result = null;
-//                foreach (var fromRel in fromItem.RelationsWithParent)
-//                {
-//                    var amountToRel = AmountToRel(fromRel, endItem);
-//                    if (result != null)
-//                    {
-//                        if (amountToRel != null)
-//                            result.Add(amountToRel);
-//                    }
-//                    else
-//                        result = amountToRel;
-//                }
-//                return result;
-//            }
+//            //    return fromItemClone.AmountSum;
+//            //}
+
+//            //private void TrimTreeOfComposition(Item fromItem, Item endItem)
+//            //{
+//            //    for (int i = 0; i < fromItem.RelationsWithParent.Count; i++)
+//            //    {
+//            //        Item selectedParentItem = fromItem.RelationsWithParent[i].Parent;
+
+//            //        //указывает ли элемент на сборку?
+//            //        if (!selectedParentItem.EntersInAsms.ContainsKey(endItem.ObjectId) && selectedParentItem.ObjectId != endItem.ObjectId)
+//            //            fromItem.RelationsWithParent.RemoveAt(i);
+//            //        else
+//            //            TrimTreeOfComposition(fromItem.RelationsWithParent[i].Parent, endItem);
+//            //    }
+//            //}
+
+//            //private MeasuredValue AmountToRel(Relation fromRel, Item endItem)
+//            //{
+//            //    var nextItem = fromRel.Parent;
+//            //    if (nextItem.ObjectId != endItem.ObjectId)
+//            //    {
+//            //        var nextAmount = AmountToItem(nextItem, endItem);
+//            //        if (nextAmount != null)
+//            //        {
+//            //            if (fromRel.Amount != null)
+//            //                nextAmount.Multiply(fromRel.Amount);
+
+//            //            return nextAmount;
+//            //        }
+//            //        else return fromRel.Amount;
+//            //    }
+//            //    else
+//            //    {
+//            //        return fromRel.Amount;
+//            //    }
+//            //}
+
+//            //private MeasuredValue AmountToItem(Item fromItem, Item endItem)
+//            //{
+//            //    MeasuredValue result = null;
+//            //    foreach (var fromRel in fromItem.RelationsWithParent)
+//            //    {
+//            //        var amountToRel = AmountToRel(fromRel, endItem);
+//            //        if (result != null)
+//            //        {
+//            //            if (amountToRel != null)
+//            //                result.Add(amountToRel);
+//            //        }
+//            //        else
+//            //            result = amountToRel;
+//            //    }
+//            //    return result;
+//            //}
 
 //            private string materialCode;
 //            private string edIzm = string.Empty;
 
+//            public Item baseItem;
+//            public Item ecoItem;
 //            public bool isPurchased = false;
 //            public bool isCoop = false;
 //            public long MaterialId;
 //            public string MaterialCaption;
 //            public string Caption = string.Empty;
 //            public string SourseOrg;
+//            public long LinkToMaterial;
 //            public int Type;
 //            public long LinkToObj;
 //            public bool WriteToReportForcibly = false;
@@ -1544,7 +1669,7 @@
 
 //                //if (!this.isCoop)
 //                //    this.SourseOrg = material.SourseOrg;
-                    
+
 //                foreach (var eia1 in material.AmountInAsm1)
 //                {
 //                    if (!this.AmountInAsm1.ContainsKey(eia1.Key))
@@ -1583,10 +1708,10 @@
 //        public MeasuredValue Amount;
 //        public bool HasEmptyAmount = false;
 
-//        public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
+//        public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo, Item endItem)
 //        {
 //            IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
-//            IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, ref exceptionInfo);
+//            IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, ref exceptionInfo, endItem);
 //            //Количество инициализируется в методе GetItem
 //            // если значение количества пустое, записываем количество у связи, затем возвращаем
 //            if (Amount != null)
@@ -1619,12 +1744,12 @@
 //                    hasemptyAmountRelations = true;
 //                    if (Parent == null)
 //                    {
-//                        AddToLogForLink("Parent == null" + LinkId);
+//                        //AddToLogForLink("Parent == null" + LinkId);
 //                    }
 
 //                    if (Child == null)
 //                    {
-//                        AddToLogForLink("Child == null" + LinkId);
+//                        //AddToLogForLink("Child == null" + LinkId);
 //                    }
 
 //                    if (Parent != null && Child != null)
@@ -1647,7 +1772,7 @@
 
 //                        #endregion Перенесем выполнение кода статического метода в текущее место
 
-//                        AddToLogForLink(text);
+//                        //AddToLogForLink(text);
 //                    }
 //                }
 
@@ -1684,6 +1809,19 @@
 //            System.IO.File.AppendAllText(file, text);
 //            //AddToOutputView(text);
 //        }
+
+//        public Relation Clone(Item item, bool withRelations)
+//        {
+//            Relation clone = new Relation();
+//            clone.Amount = this.Amount.Clone() as MeasuredValue;
+//            clone.Child = item.Clone(withRelations);
+//            clone.Parent = this.Parent.Clone(withRelations);
+//            clone.RelationTypeId = this.RelationTypeId;
+//            clone.LinkId = this.LinkId;
+//            clone.HasEmptyAmount = this.HasEmptyAmount;
+
+//            return clone;
+//        }
 //    }
 
 //    /// <summary>
@@ -1700,7 +1838,7 @@
 //            MaterialId, MaterialCode, Caption, Id, Caption, AmountSum, objType1);
 //        }
 
-//        public virtual Item Clone()
+//        public virtual Item Clone(bool withRelations = false)
 //        {
 //            Item clone = new Item();
 //            clone.MaterialId = MaterialId;
@@ -1709,8 +1847,6 @@
 //            clone.ObjectId = ObjectId;
 //            clone.Caption = Caption;
 //            clone.ObjectType = ObjectType;
-//            clone.RelationsWithParent = RelationsWithParent;
-//            clone.RelationsWithChild = RelationsWithChild;
 //            clone._entersInAsms = _entersInAsms;
 //            clone.LinkToObjId = LinkToObjId;
 //            clone.isPurchased = isPurchased;
@@ -1720,6 +1856,23 @@
 //            clone.isCoop = isCoop;
 //            clone.SourseOrg = SourseOrg;
 //            clone.WriteToReportForcibly = WriteToReportForcibly;
+//            clone.LinkToMaterial = LinkToMaterial;
+
+//            //if (withRelations)
+//            //{
+//            //    foreach (var relP in this.RelationsWithParent)
+//            //        clone.RelationsWithParent.Add(relP.Clone(this, withRelations));
+
+//            //    //foreach (var relC in this.RelationsWithChild)
+//            //    //    clone.RelationsWithChild.Add(relC.Clone(this));
+//            //}
+//            //else
+//            //{
+//            clone.RelationsWithChild = RelationsWithChild;
+//            clone.RelationsWithParent = RelationsWithParent;
+//            //}
+
+
 //            return clone;
 //        }
 //        public bool WriteToReportForcibly = false;
@@ -1735,12 +1888,23 @@
 //        public string Caption;
 //        public long LinkToObjId;
 //        public int ObjectType;
-
+//        public long LinkToMaterial;
 //        //группы замен
 //        public int ReplacementGroup = -1;
 //        public bool isActualReplacement = false;
 //        public bool isPossableReplacement = false;
 
+//        private List<Item> _associatedItemsAndSelf = new List<Item>();
+//        public List<Item> AssociatedItemsAndSelf
+//        {
+//            get
+//            {
+//                if (_associatedItemsAndSelf.Count == 0)
+//                    _associatedItemsAndSelf.Add(this);
+
+//                return _associatedItemsAndSelf;
+//            }
+//        }
 //        /// <summary>
 //        /// Связь с первым вхождением в сборку; количество элемента из ближайшей связи
 //        /// </summary>
@@ -1765,7 +1929,7 @@
 //                            foreach (var nextAsm in nextAsms)
 //                            {
 //                                if (!_entersInAsms.ContainsKey(nextAsm.Key))
-//                                   _entersInAsms[nextAsm.Key] = nextAsm.Value;
+//                                    _entersInAsms[nextAsm.Key] = nextAsm.Value;
 //                            }
 //                        }
 //                    }
@@ -1789,7 +1953,7 @@
 
 //        private Dictionary<long, Item> _entersInAsms = new Dictionary<long, Item>();
 
-//        public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
+//        public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo, Item endItem)
 //        {
 //            MeasuredValue measuredValue = null;
 //            IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
@@ -1803,7 +1967,16 @@
 //                bool hasContextObject1 = true;
 //                if (checkContextObject)
 //                    hasContextObject1 = false;
-//                IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, ref exceptionInfo);
+
+//                if (endItem != null)
+//                {
+//                    Item selectedParentItem = relation.Parent;
+//                    //указывает ли элемент на сборку?
+//                    if (!selectedParentItem.EntersInAsms.ContainsKey(endItem.ObjectId) && selectedParentItem.ObjectId != endItem.ObjectId)
+//                        continue;
+//                }
+
+//                IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, ref exceptionInfo, endItem);
 
 //                hasContextObject = hasContextObject | hasContextObject1;
 //                if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;
