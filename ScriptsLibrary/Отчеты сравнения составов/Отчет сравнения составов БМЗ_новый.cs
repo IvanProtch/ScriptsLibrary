@@ -354,6 +354,10 @@ namespace EcoDiffReport
                         .Where(e => e.Caption == item.Caption)
                         .FirstOrDefault(e => e.AmountInAsm.Keys.Select(r => r.Caption).Where(t => itemEntersInAsms.Contains(t)).Count() > 0);
 
+                    //связываем итоговое количество
+                    if(associatedComplectUnit != null)
+                        item.AmountSum = associatedComplectUnit.AmountSum;
+                    
                     //перезаписываем значения количества для item из данных associatedComplectUnit
                     foreach (Relation item_rwp in item.RelationsWithParent)
                     {
@@ -455,7 +459,7 @@ namespace EcoDiffReport
                     {
                         if (actualItem.AmountSum != null)
                         {
-                            actualItem.AssociatedItemsAndSelf.Add(AmountItemClone);
+                            actualItem.AssociatedItemsAndSelf[AmountItemClone.ObjectId] = AmountItemClone;
                             actualItem.AmountSum.Add(AmountItemClone.AmountSum);
 
                             //обновляем данные по входямостям в сборки
@@ -719,19 +723,19 @@ namespace EcoDiffReport
 
             #endregion Первый состав по извещению
 
-            #region Состав по извещения
+            //#region Состав извещения
 
-            dt = DataHelper.GetChildSostavData(new List<ObjInfoItem>() { new ObjInfoItem(ecoObj.ObjectID) }, session, rels, -1, dbrsp, null,
-            Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
+            //dt = DataHelper.GetChildSostavData(new List<ObjInfoItem>() { new ObjInfoItem(ecoObj.ObjectID) }, session, rels, -1, dbrsp, null,
+            //Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
 
-            // Храним пару ид версии объекта + ид. физической величины
-            // те объекты у которых посчитали количество
-            // состав по извещен
-            Dictionary<Tuple<long, long, string>, Item> eco = GetComposition(headerObj, dt, session);
+            //// Храним пару ид версии объекта + ид. физической величины
+            //// те объекты у которых посчитали количество
+            //// состав по извещен
+            //Dictionary<Tuple<long, long, string>, Item> eco = GetComposition(headerObj, dt, session);
 
-            //AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
+            ////AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
 
-            #endregion Первый состав по извещению
+            //#endregion Первый состав по извещению
 
             //сохраняем контекст редактирования
             long sessionid = session.EditingContextID;
@@ -786,49 +790,136 @@ namespace EcoDiffReport
                 .Where(e => (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
                 .ToList();
 
-            List<Material> complectUnits_zag = new List<Material>();
-            foreach (var material in resultComposition)
+            #region Добавление в выборку деталей из заготовок
+
+            List<Material> zagMaterials = new List<Material>();
+            //материал и список комплектующих(деталей) связанных с ним
+            Dictionary<Material, List<Material>> matPartPairs = new Dictionary<Material, List<Material>>();
+
+            zagMaterials = resultComposition.Where(e => e.Type == _zagotType)
+                .ToList();
+
+
+            foreach (var zgMat in zagMaterials)
             {
-                //для заготовок чужих организаций находим компл ед, записываем ту же организацию, группирующее значение, принудительно добавляем в отчет
-                if (material.Type == _zagotType && material.SourseOrg != originOrg)
+                var zagBaseComp = zgMat.baseItem.AssociatedItemsAndSelf;
+                var zagEcoComp = zgMat.ecoItem.AssociatedItemsAndSelf;
+
+                List<Material> zags = new List<Material>();
+
+                foreach (var resItem in zagBaseComp)
                 {
-                    Item complectUnit_eco = null;
-                    Item zag_eco = null;
-                    foreach (var zag in material.ecoItem.AssociatedItemsAndSelf)
+                    Item ecoItem;
+                    //Находим базовый объект в списке объектов из извещения
+                    if (zagEcoComp.TryGetValue(resItem.Key, out ecoItem))
                     {
-                        Item part = zag.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
-
-                        complectUnit_eco = eco.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
-                        zag_eco = complectUnit_eco != null ? null : eco.Values.FirstOrDefault(e => e.ObjectId == zag.ObjectId);
-                        if (complectUnit_eco != null)
-                        {
-                            complectUnit_eco.SourseOrg = material.SourseOrg;
-                            complectUnit_eco.WriteToReportForcibly = true;
-                            complectUnit_eco.LinkToMaterial = material.MaterialId;
-                            material.LinkToMaterial = material.MaterialId;
-                        }
-                        if (zag_eco != null)
-                        {
-                            complectUnit_eco = zag_eco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
-
-                            complectUnit_eco.SourseOrg = material.SourseOrg;
-                            complectUnit_eco.WriteToReportForcibly = true;
-                            complectUnit_eco.LinkToMaterial = material.MaterialId;
-                            material.LinkToMaterial = material.MaterialId;
-                            complectUnit_eco.LinkToObjId = complectUnit_eco.ObjectId;
-
-                            Tuple<string, string> exceptionInfo = null;
-                            bool hasContextObjects = false;
-
-                            complectUnit_eco.AmountSum = complectUnit_eco.GetAmount(false, ref hasContextObjects, ref complectUnit_eco.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
-                        }
-
-                        if (complectUnit_eco != null)
-                            complectUnits_zag.Add(new Material(null, complectUnit_eco));
+                        zagEcoComp.Remove(resItem.Key);
                     }
+
+                    Material material = new Material(resItem.Value, ecoItem);
+                    zags.Add(material);
                 }
+                foreach (var ecoItem in zagEcoComp.Values)
+                {
+                    Material material = new Material(null, ecoItem);
+                    zags.Add(material);
+                }
+
+                zags = zags.Where(e => e.Amount1 != e.Amount2)
+                   .ToList();
+
+                //получаем детали от измененных заготовок:
+                List<Material> parts = new List<Material>();
+
+                foreach (var zag in zags)
+                {
+                    var zagEco = zag.ecoItem;
+                    var zagBase = zag.baseItem;
+
+                    var partEco = zagEco != null ? zagEco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent : null;
+                    var partBase = zagBase != null ? zagBase.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent : null;
+
+                    //далее пересчитываем общее количество деталей:
+
+                    Tuple<string, string> exceptionInfo = null;
+                    bool hasContextObjects = false;
+
+                    if (partEco != null)
+                    {
+                        partEco.SourseOrg = zgMat.SourseOrg;
+                        partEco.WriteToReportForcibly = true;
+                        //partEco.LinkToMaterial = zgMat.MaterialId;
+                        //zgMat.LinkToMaterial = zgMat.MaterialId;
+                        partEco.LinkToObjId = partEco.ObjectId;
+
+                        partEco.AmountSum = partEco.GetAmount(false, ref hasContextObjects, ref partEco.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+
+                    }
+                    if (partBase != null)
+                    {
+                        partBase.SourseOrg = zgMat.SourseOrg;
+                        partBase.WriteToReportForcibly = true;
+                        //partBase.LinkToMaterial = zgMat.MaterialId;
+                        //zgMat.LinkToMaterial = zgMat.MaterialId;
+                        partBase.LinkToObjId = partBase.ObjectId;
+
+                        partBase.AmountSum = partBase.GetAmount(false, ref hasContextObjects, ref partBase.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+                    }
+                    var newPart = new Material(partBase, partEco);
+                    parts.Add(newPart);
+                }
+
+                if (!matPartPairs.ContainsKey(zgMat))
+                    matPartPairs[zgMat] = parts;
             }
-            resultComposition.AddRange(complectUnits_zag);
+
+            #endregion
+
+            //.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent
+            //foreach (var material in resultComposition)
+            //{
+            //    //для заготовок чужих организаций находим компл ед, записываем ту же организацию, группирующее значение, принудительно добавляем в отчет
+            //    if (material.Type == _zagotType && material.SourseOrg != originOrg)
+            //    {
+            //        Item complectUnit_eco = null;
+            //        Item zag_eco = null;
+            //        foreach (var zag in material.ecoItem.AssociatedItemsAndSelf)
+            //        {
+            //            Item part = zag.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
+
+            //            complectUnit_eco = ecoComposition.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
+            //            zag_eco = complectUnit_eco != null ? null : ecoComposition.Values.FirstOrDefault(e => e.ObjectId == zag.ObjectId);
+            //            if (complectUnit_eco != null)
+            //            {
+            //                complectUnit_eco.SourseOrg = material.SourseOrg;
+            //                complectUnit_eco.WriteToReportForcibly = true;
+            //                complectUnit_eco.LinkToMaterial = material.MaterialId;
+            //                material.LinkToMaterial = material.MaterialId;
+            //            }
+            //            if (zag_eco != null)
+            //            {
+            //                complectUnit_eco = zag_eco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
+
+            //                complectUnit_eco.SourseOrg = material.SourseOrg;
+            //                complectUnit_eco.WriteToReportForcibly = true;
+            //                complectUnit_eco.LinkToMaterial = material.MaterialId;
+            //                material.LinkToMaterial = material.MaterialId;
+            //                complectUnit_eco.LinkToObjId = complectUnit_eco.ObjectId;
+
+            //                Tuple<string, string> exceptionInfo = null;
+            //                bool hasContextObjects = false;
+
+            //                complectUnit_eco.AmountSum = complectUnit_eco.GetAmount(false, ref hasContextObjects, ref complectUnit_eco.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+            //            }
+
+            //            if (complectUnit_eco != null)
+            //                complectUnits_zag.Add(new Material(null, complectUnit_eco));
+            //        }
+            //    }
+            //}
+            //resultComposition.AddRange(complectUnits_zag);
+
+
             //var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMaterial).ToList();
 
             //foreach (var ecoItem in ecoComposition)
@@ -842,7 +933,6 @@ namespace EcoDiffReport
             //}
 
             #endregion Итоговый состав материалов
-
 
             #region Изменение групп заменителей
 
@@ -1021,43 +1111,52 @@ namespace EcoDiffReport
 
             reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption && e.EdIzm == i.EdIzm) > 1);
 
+            reportComp = reportComp
+
+                .OrderBy(e => e.MaterialCaption)
+                //.Where(e => (e.Amount1 != e.Amount2))
+                .ToList();
+
+            reportComp.RemoveAll(e => e.Type == _zagotType);
+
+            //добавляем новые детали в итоговую выборку
+            foreach (var item in matPartPairs)
+            {
+                reportComp.AddRange(item.Value);
+                reportComp.Add(item.Key);
+            }
+
             foreach (var item in reportComp)
-           {
+            {
                 //для объектов из других организаций
-                if ((item.SourseOrg != originOrg && (item.Type == _complectUnitType 
+                if ((item.SourseOrg != originOrg && (item.Type == _complectUnitType
                     || MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)).Contains(item.Type)))
                     || (item.SourseOrg != originOrg && item.Type == _zagotType))
-                    item.MaterialCode += "\nот "+item.SourseOrg;
+                    item.MaterialCode += "\nот " + item.SourseOrg;
 
-                ////оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
-                //var keys1 = item.EntersInAsm1.Keys.ToList();
-                //foreach (var key in keys1)
-                //{
-                //    Tuple<MeasuredValue, MeasuredValue> value = null;
-                //    if (item.EntersInAsm2.TryGetValue(key, out value))
-                //    {
-                //        if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
-                //        {
-                //            item.EntersInAsm1.Remove(key);
-                //            item.EntersInAsm2.Remove(key);
-                //            continue;
-                //        }
-                //        if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
-                //        {
-                //            item.EntersInAsm1.Remove(key);
-                //            item.EntersInAsm2.Remove(key);
-                //        }
-                //    }
-                //}
+                //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
+                var keys1 = item.EntersInAsm1.Keys.ToList();
+                foreach (var key in keys1)
+                {
+                    Tuple<MeasuredValue, MeasuredValue> value = null;
+                    if (item.EntersInAsm2.TryGetValue(key, out value))
+                    {
+                        if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
+                        {
+                            item.EntersInAsm1.Remove(key);
+                            item.EntersInAsm2.Remove(key);
+                            continue;
+                        }
+                        if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
+                        {
+                            item.EntersInAsm1.Remove(key);
+                            item.EntersInAsm2.Remove(key);
+                        }
+                    }
+                }
                 item.EntersInAsm1 = item.EntersInAsm1.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
                 item.EntersInAsm2 = item.EntersInAsm2.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
             }
-
-            reportComp = reportComp
-
-                .OrderBy(e => e.LinkToMaterial).ThenByDescending(e => e.Type)
-                //.Where(e => (e.Amount1 != e.Amount2))
-                .ToList();
 
             if (writeTestingData)
             {
@@ -1789,13 +1888,13 @@ namespace EcoDiffReport
         public bool isActualReplacement = false;
         public bool isPossableReplacement = false;
 
-        private List<Item> _associatedItemsAndSelf = new List<Item>();
-        public List<Item> AssociatedItemsAndSelf 
+        private Dictionary<long, Item> _associatedItemsAndSelf = new Dictionary<long, Item>();
+        public Dictionary<long, Item> AssociatedItemsAndSelf 
         { 
             get
             {
                 if (_associatedItemsAndSelf.Count == 0)
-                    _associatedItemsAndSelf.Add(this);
+                    _associatedItemsAndSelf[this.ObjectId] = this.Clone();
 
                    return _associatedItemsAndSelf;
             } 
@@ -1931,4 +2030,3 @@ namespace EcoDiffReport
         };
     }
 }
-
