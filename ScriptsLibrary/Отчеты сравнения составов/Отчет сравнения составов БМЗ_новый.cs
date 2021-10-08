@@ -311,10 +311,6 @@ namespace EcoDiffReport
 
             foreach (DataRow row in dtCompos.Rows)
             {
-                //if (Convert.ToInt32(row["F_OBJECT_TYPE"]) == _zagotType &&
-                //    row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
-                //    continue;
-
                 Item item = GetItem(row, itemsDict, true, compositionType);
             }
 
@@ -371,29 +367,6 @@ namespace EcoDiffReport
                     }
                 }
 
-                ////для заготовок находим компл ед, записываем ту же организацию
-                //if(item.ObjectType == _zagotType)
-                //{
-                //    var relMO = item.RelationsWithParent.FirstOrDefault();
-                //    if(relMO != null)
-                //    {
-                //        var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
-                //        if(relPart != null)
-                //        {
-                //            Item complectUnit;
-                //            if(itemsDict.Item2.TryGetValue(relPart.Parent.ObjectId, out complectUnit))
-                //            {
-                //                complectUnit.SourseOrg = item.SourseOrg;
-                //                //complectUnit.isCoop = item.isCoop;
-                //                complectUnit.WriteToReportForcibly = true;
-                //                //item.LinkToObjId = complectUnit.LinkToObjId;
-                //                complectUnit.LinkToMaterial = item.MaterialId;
-                //                item.LinkToMaterial = item.MaterialId;
-                //            }
-                //        }
-                //    }
-                //}
-
                 //if (item is ComplexMaterialItem)
                 //{
                 //    ComplexMaterialItem complexMaterial = item as ComplexMaterialItem;
@@ -429,8 +402,8 @@ namespace EcoDiffReport
                     continue;
 
                 bool hasContextObjects = false;
-                
-                var itemsAmount = item.GetAmount(true, ref hasContextObjects, ref item.HasEmptyAmount, ref exceptionInfo);
+
+                var itemsAmount = item.GetAmount(true, ref hasContextObjects, ref item.HasEmptyAmount, exceptionInfo, null);
 
                 if (exceptionInfo.Item2.Length > 0)
                 {
@@ -486,9 +459,8 @@ namespace EcoDiffReport
             //|| MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)).Contains(e.ObjectType)
             ))
             {
-                Tuple<string, string> exceptionInfo = null;
                 bool hasContextObjects = false;
-                asm.AmountSum = asm.GetAmount(false, ref hasContextObjects, ref asm.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+                asm.AmountSum = asm.GetAmount(false, ref hasContextObjects, ref asm.HasEmptyAmount, null, null).Values.FirstOrDefault();
             }
 
             return composition;
@@ -921,18 +893,6 @@ namespace EcoDiffReport
 
 
             //var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMaterial).ToList();
-
-            //foreach (var ecoItem in ecoComposition)
-            //{
-            //    //добавляем детали связанные с заготовками принудительно:
-            //    if (ecoItem.Value.WriteToReportForcibly && ecoItem.Value.SourseOrg != originOrg)
-            //    {
-            //        if (!resultComposition.Select(e => e.MaterialId).ToList().Contains(ecoItem.Value.LinkToMaterial))
-            //            resultComposition.Add(new Material(null, ecoItem.Value));
-            //    }
-            //}
-
-            #endregion Итоговый состав материалов
 
             #region Изменение групп заменителей
 
@@ -1547,8 +1507,21 @@ namespace EcoDiffReport
                 Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> entersInAsmToInit = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
                 foreach (var Amountinasm1 in item.AmountInAsm)
                 {
-                    var asmAmount = Amountinasm1.Key.AmountSum;
-                        //Amountinasm1.Key.Parent.RelationsWithParent.FirstOrDefault() != null ? Amountinasm1.Key.Parent.AmountSum : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
+                    var asmAmount = asm.Value.AmountSum;
+                    //var itemAmount = this.AmountToItem(item, asm.Value);
+
+                    bool hasContextObjects = false;
+                    var itemAmount = item.GetAmount(false, ref hasContextObjects, ref item.HasEmptyAmount, null, asm.Value).Values.FirstOrDefault();
+
+                    //if (asmAmount != null && itemAmount != null)
+                    //{
+                    //    var measure = MeasureHelper.FindDescriptor(itemAmount.MeasureID);
+                    //    var value = itemAmount.Value / asmAmount.Value;
+                    //    itemAmount = MeasureHelper.ConvertToMeasuredValue(value.ToString() + " " + measure.ShortName);
+                    //}
+
+                    entersInAsmToInit[asm.Value.Caption] = new Tuple<MeasuredValue, MeasuredValue>(itemAmount == null ? empty : itemAmount, asmAmount == null ? empty : asmAmount);
+                    //Amountinasm1.Key.Parent.RelationsWithParent.FirstOrDefault() != null ? Amountinasm1.Key.Parent.AmountSum : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
 
                     var _null = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
                     entersInAsmToInit[Amountinasm1.Key.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null,
@@ -1556,6 +1529,72 @@ namespace EcoDiffReport
                 }
                 return entersInAsmToInit;
             }
+
+            ////копирует все дерево fromItem до нахождения с endItem, далее считает количество
+            //private MeasuredValue AmountToItem(Item fromItem, Item endItem)
+            //{
+            //    Item fromItemClone = fromItem.Clone(true);
+            //    TrimTreeOfComposition(fromItemClone, endItem);
+
+            //    Tuple<string, string> exceptionInfo = null;
+            //    bool hasContextObjects = false;
+            //    fromItemClone.AmountSum = fromItemClone.GetAmount(false, ref hasContextObjects, ref fromItemClone.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+
+            //    return fromItemClone.AmountSum;
+            //}
+
+            //private void TrimTreeOfComposition(Item fromItem, Item endItem)
+            //{
+            //    for (int i = 0; i < fromItem.RelationsWithParent.Count; i++)
+            //    {
+            //        Item selectedParentItem = fromItem.RelationsWithParent[i].Parent;
+
+            //        //указывает ли элемент на сборку?
+            //        if (!selectedParentItem.EntersInAsms.ContainsKey(endItem.ObjectId) && selectedParentItem.ObjectId != endItem.ObjectId)
+            //            fromItem.RelationsWithParent.RemoveAt(i);
+            //        else
+            //            TrimTreeOfComposition(fromItem.RelationsWithParent[i].Parent, endItem);
+            //    }
+            //}
+
+            //private MeasuredValue AmountToRel(Relation fromRel, Item endItem)
+            //{
+            //    var nextItem = fromRel.Parent;
+            //    if (nextItem.ObjectId != endItem.ObjectId)
+            //    {
+            //        var nextAmount = AmountToItem(nextItem, endItem);
+            //        if (nextAmount != null)
+            //        {
+            //            if (fromRel.Amount != null)
+            //                nextAmount.Multiply(fromRel.Amount);
+
+            //            return nextAmount;
+            //        }
+            //        else return fromRel.Amount;
+            //    }
+            //    else
+            //    {
+            //        return fromRel.Amount;
+            //    }
+            //}
+
+            //private MeasuredValue AmountToItem(Item fromItem, Item endItem)
+            //{
+            //    MeasuredValue result = null;
+            //    foreach (var fromRel in fromItem.RelationsWithParent)
+            //    {
+            //        var amountToRel = AmountToRel(fromRel, endItem);
+            //        if (result != null)
+            //        {
+            //            if (amountToRel != null)
+            //                result.Add(amountToRel);
+            //        }
+            //        else
+            //            result = amountToRel;
+            //    }
+            //    return result;
+            //}
+
             private string materialCode;
             private string edIzm = string.Empty;
 
@@ -1729,10 +1768,10 @@ namespace EcoDiffReport
         public MeasuredValue Amount;
         public bool HasEmptyAmount = false;
 
-        public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
+        public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, Tuple<string, string> exceptionInfo, Item endItem)
         {
             IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
-            IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, ref exceptionInfo);
+            IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, exceptionInfo, endItem);
             //Количество инициализируется в методе GetItem
             // если значение количества пустое, записываем количество у связи, затем возвращаем
             if (Amount != null)
@@ -1765,12 +1804,12 @@ namespace EcoDiffReport
                     hasemptyAmountRelations = true;
                     if (Parent == null)
                     {
-                        AddToLogForLink("Parent == null" + LinkId);
+                        //AddToLogForLink("Parent == null" + LinkId);
                     }
 
                     if (Child == null)
                     {
-                        AddToLogForLink("Child == null" + LinkId);
+                        //AddToLogForLink("Child == null" + LinkId);
                     }
 
                     if (Parent != null && Child != null)
@@ -1793,7 +1832,7 @@ namespace EcoDiffReport
 
                         #endregion Перенесем выполнение кода статического метода в текущее место
 
-                        AddToLogForLink(text);
+                        //AddToLogForLink(text);
                     }
                 }
 
@@ -1830,6 +1869,7 @@ namespace EcoDiffReport
             System.IO.File.AppendAllText(file, text);
             //AddToOutputView(text);
         }
+
     }
 
     /// <summary>
@@ -1949,7 +1989,7 @@ namespace EcoDiffReport
 
         private Dictionary<Item, MeasuredValue> _AmountInAsm = new Dictionary<Item, MeasuredValue>();
 
-        public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo)
+        public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, Tuple<string, string> exceptionInfo, Item endItem)
         {
             MeasuredValue measuredValue = null;
             IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
@@ -1963,7 +2003,16 @@ namespace EcoDiffReport
                 bool hasContextObject1 = true;
                 if (checkContextObject)
                     hasContextObject1 = false;
-                IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, ref exceptionInfo);
+
+                if(endItem != null)
+                {
+                    Item selectedParentItem = relation.Parent;
+                    //указывает ли элемент на сборку?
+                    if (!selectedParentItem.EntersInAsms.ContainsKey(endItem.ObjectId) && selectedParentItem.ObjectId != endItem.ObjectId)
+                        continue;
+                }
+
+                IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, exceptionInfo, endItem);
 
                 hasContextObject = hasContextObject | hasContextObject1;
                 if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;
