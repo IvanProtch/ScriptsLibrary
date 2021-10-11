@@ -1035,26 +1035,6 @@ namespace EcoDiffReport
                     || (item.SourseOrg != originOrg && item.Type == _zagotType))
                     item.MaterialCode += "\nот " + item.SourseOrg;
 
-                ////оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
-                //var keys1 = item.EntersInAsm1.Keys.ToList();
-                //foreach (var key in keys1)
-                //{
-                //    Tuple<MeasuredValue, MeasuredValue> value = null;
-                //    if (item.EntersInAsm2.TryGetValue(key, out value))
-                //    {
-                //        if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
-                //        {
-                //            item.EntersInAsm1.Remove(key);
-                //            item.EntersInAsm2.Remove(key);
-                //            continue;
-                //        }
-                //        if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
-                //        {
-                //            item.EntersInAsm1.Remove(key);
-                //            item.EntersInAsm2.Remove(key);
-                //        }
-                //    }
-                //}
                 item.AmountInAsm1 = item.AmountInAsm1.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
                 item.AmountInAsm2 = item.AmountInAsm2.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
             }
@@ -1188,9 +1168,7 @@ namespace EcoDiffReport
                                     DocumentTreeNode row2 = node.FindNode("Строка2");
                                     if (item.AmountInAsm1.Count != 0)
                                     {
-                                        WriteFirstAfterParent(row2, "Куда входит", item.AmountInAsm1.First().Key);
-                                        WriteFirstAfterParent(row2, "Количество вхождений", item.AmountInAsm1.First().Value.Item1.Caption);
-                                        WriteFirstAfterParent(row2, "Количество сборок", item.AmountInAsm1.First().Value.Item2.Caption);
+                                        AddPresentationRowInCompleteReport(row2, item.AmountInAsm2, item.AmountInAsm1.First(), totalIndex);
                                     }
 
                                     for (int j = 1; j < item.AmountInAsm1.Count; j++)
@@ -1200,9 +1178,8 @@ namespace EcoDiffReport
 
                                         totalIndex++;
                                         col2.AddChildNode(node2, false, false);
-                                        WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm1.Keys.ToList()[j]);
-                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item1.Caption);
-                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item2.Caption);
+
+                                        AddPresentationRowInCompleteReport(node2, item.AmountInAsm2, item.AmountInAsm1.ToArray()[j], totalIndex);
                                     }
                                 }
 
@@ -1211,9 +1188,7 @@ namespace EcoDiffReport
                                     DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
                                     if (item.AmountInAsm1.Count != 0)
                                     {
-                                        WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm1.First().Key);
-                                        WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm1.First().Value.Item1.Caption);
-                                        WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm1.First().Value.Item2.Caption);
+                                        AddPresentationRowInCompleteReport(row2, item.AmountInAsm2, item.AmountInAsm1.First(), totalIndex);
                                     }
 
                                     for (int j = 1; j < item.AmountInAsm1.Count; j++)
@@ -1223,9 +1198,8 @@ namespace EcoDiffReport
 
                                         totalIndex++;
                                         col2.AddChildNode(node2, false, false);
-                                        WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm1.Keys.ToList()[j]);
-                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item1.Caption);
-                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item2.Caption);
+
+                                        AddPresentationRowInCompleteReport(node2, item.AmountInAsm2, item.AmountInAsm1.ToArray()[j], totalIndex);
                                     }
                                 }
                             }
@@ -1251,9 +1225,7 @@ namespace EcoDiffReport
                                 DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
                                 if (item.AmountInAsm2.Count != 0)
                                 {
-                                    WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm2.First().Key);
-                                    WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm2.First().Value.Item1.Caption);
-                                    WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm2.First().Value.Item2.Caption);
+                                    AddPresentationRowInCompleteReport(row2,item.AmountInAsm1, item.AmountInAsm2.First(), totalIndex);
                                 }
 
                                 for (int j = 1; j < item.AmountInAsm2.Count; j++)
@@ -1261,9 +1233,8 @@ namespace EcoDiffReport
                                     DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
                                     col2.AddChildNode(node2, false, false);
                                     totalIndex++;
-                                    WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm2.Keys.ToList()[j]);
-                                    WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm2.Values.ToList()[j].Item1.Caption);
-                                    WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm2.Values.ToList()[j].Item2.Caption);
+
+                                    AddPresentationRowInCompleteReport(node2, item.AmountInAsm1, item.AmountInAsm2.ToArray()[j], totalIndex);
                                 }
                             }
                         }
@@ -1297,69 +1268,92 @@ namespace EcoDiffReport
 
                     if (item.HasEmptyAmount1 || item.HasEmptyAmount2)
                     {
-                        (node as RectangleElement).AssignLeftBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (node as RectangleElement).AssignRightBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (node as RectangleElement).AssignTopBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        (node as RectangleElement).AssignBottomBorderLine(
-                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                        //AddToLog("item.HasEmptyAmount  " + item.ToString());
                         foreach (DocumentTreeNode child in node.Nodes)
                         {
-                            (child as RectangleElement).AssignLeftBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            (child as RectangleElement).AssignRightBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            (child as RectangleElement).AssignTopBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            (child as RectangleElement).AssignBottomBorderLine(
-                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-                            if (child is TextData)
-                            {
-                                //AddToLog("child  id = " + child.Id);
-                                if ((child as TextData).CharFormat != null)
-                                {
-                                    CharFormat cf = (child as TextData).CharFormat.Clone();
-                                    cf.TextColor = Color.Red;
-                                    cf.CharStyle = CharStyle.Bold;
-                                    //AddToLog("SetCharFormat");
-                                    (child as TextData).SetCharFormat(cf, false, false);
-                                }
-                                else
-                                {
-                                    //AddToLog("(child as TextData).CharFormat == null");
-                                }
-                            }
+                            SelectNodeInTable(child, BorderStyles.SolidLine, 1, Color.Red, CharStyle.Bold, Color.Red);
                         }
                     }
                 }
             }
 
-            //private void SelectDistinctEntersIn()
-            //{
-            //    //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
-            //    var keys1 = item.EntersInAsm1.Keys.ToList();
-            //    foreach (var key in keys1)
-            //    {
-            //        Tuple<MeasuredValue, MeasuredValue> value = null;
-            //        if (item.EntersInAsm2.TryGetValue(key, out value))
-            //        {
-            //            if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
-            //            {
-            //                item.EntersInAsm1.Remove(key);
-            //                item.EntersInAsm2.Remove(key);
-            //                continue;
-            //            }
-            //            if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
-            //            {
-            //                item.EntersInAsm1.Remove(key);
-            //                item.EntersInAsm2.Remove(key);
-            //            }
-            //        }
-            //    }
-            //}
+            private void SelectNodeInTable(DocumentTreeNode node, BorderStyles borderStyles, float borderWidth, Color borderColor, CharStyle charStyle, Color textColor)
+            {
+                (node as RectangleElement).AssignLeftBorderLine(
+                new BorderLine(borderColor, borderStyles, borderWidth), false);
+                (node as RectangleElement).AssignRightBorderLine(
+                new BorderLine(borderColor, borderStyles, borderWidth), false);
+                (node as RectangleElement).AssignTopBorderLine(
+                new BorderLine(borderColor, borderStyles, borderWidth), false);
+                (node as RectangleElement).AssignBottomBorderLine(
+                new BorderLine(borderColor, borderStyles, borderWidth), false);
+                if (node is TextData)
+                {
+                    if ((node as TextData).CharFormat != null)
+                    {
+                        CharFormat cf = (node as TextData).CharFormat.Clone();
+                        cf.TextColor = textColor;
+                        cf.CharStyle = charStyle;
+                        (node as TextData).SetCharFormat(cf, false, false);
+                    }
+                }
+            }
+
+            private void AddPresentationRowInCompleteReport(DocumentTreeNode node, Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> amountInAsms_another, KeyValuePair<string, Tuple<MeasuredValue, MeasuredValue>> amountInCurrentAsm, int totalIndex)
+            {
+                bool changedField = false;
+
+                if (amountInAsms_another.ContainsKey(amountInCurrentAsm.Key))
+                    changedField = amountInCurrentAsm.Value.Item1.Value != amountInAsms_another[amountInCurrentAsm.Key].Item1.Value || amountInCurrentAsm.Value.Item2.Value != amountInAsms_another[amountInCurrentAsm.Key].Item2.Value ? true : false;
+                else
+                    changedField = true;
+
+                if(totalIndex == 1)
+                {
+
+                    var charFormat = changedField ? new CharFormat("arial", 10, CharStyle.Italic | CharStyle.Bold) : 
+                        new CharFormat("arial", 10, CharStyle.Strikethrough);
+                    WriteFirstAfterParent(node, "Куда входит", amountInCurrentAsm.Key, charFormat);
+                    WriteFirstAfterParent(node, "Количество вхождений", amountInCurrentAsm.Value.Item1.Caption);
+                    WriteFirstAfterParent(node, "Количество сборок", amountInCurrentAsm.Value.Item2.Caption);
+                    //if (changedField)
+                    //    SelectNodeInTable(node, BorderStyles.SolidLine, 0.5f, Color.Black, CharStyle.Bold, Color.Black);
+                }
+                else
+                {
+                    var charFormat = changedField ? new CharFormat("arial", 10, CharStyle.Bold | CharStyle.Italic) : 
+                        new CharFormat("arial", 10, CharStyle.Strikethrough);
+                    WriteFirstAfterParent(node, string.Format("Куда входит #{0}", totalIndex), amountInCurrentAsm.Key, charFormat);
+                    WriteFirstAfterParent(node, string.Format("Количество вхождений #{0}", totalIndex), amountInCurrentAsm.Value.Item1.Caption);
+                    WriteFirstAfterParent(node, string.Format("Количество сборок #{0}", totalIndex), amountInCurrentAsm.Value.Item2.Caption);
+                    //if (changedField)
+                    //    SelectNodeInTable(node, BorderStyles.SolidLine, 0.5f, Color.Black, CharStyle.Bold, Color.Black);
+                }
+
+            }
+
+            private void WriteOnlyDiffrenceEntersIn(Material item)
+            {
+                //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
+                var keys1 = item.AmountInAsm1.Keys.ToList();
+                foreach (var key in keys1)
+                {
+                    Tuple<MeasuredValue, MeasuredValue> value = null;
+                    if (item.AmountInAsm2.TryGetValue(key, out value))
+                    {
+                        if (value.Item1 == null || value.Item2 == null || item.AmountInAsm1[key].Item1 == null || item.AmountInAsm1[key].Item2 == null)
+                        {
+                            item.AmountInAsm1.Remove(key);
+                            item.AmountInAsm2.Remove(key);
+                            continue;
+                        }
+                        if (value.Item1.Value == item.AmountInAsm1[key].Item1.Value && value.Item2.Value == item.AmountInAsm1[key].Item2.Value)
+                        {
+                            item.AmountInAsm1.Remove(key);
+                            item.AmountInAsm2.Remove(key);
+                        }
+                    }
+                }
+            }
 
             private DocumentTreeNode AddNode(DocumentTreeNode childNode, string value)
             {
@@ -1386,11 +1380,15 @@ namespace EcoDiffReport
                 }
 
             }
-            private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text)
+            private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text, CharFormat charFormat = null)
             {
                 TextData td = parent.FindNode(tplid) as TextData;
                 if (td != null)
+                {
+                    td.SetCharFormat(charFormat == null ? new CharFormat("arial", 10, CharStyle.Regular) : charFormat, false, false);
                     td.AssignText(text, false, false, false);
+
+                }
             }
         }
 
