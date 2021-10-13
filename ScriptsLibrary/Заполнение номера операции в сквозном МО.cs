@@ -17,11 +17,13 @@ public class Script
         if (System.Diagnostics.Debugger.IsAttached)
             System.Diagnostics.Debugger.Break();
 
+        string error = string.Empty;
+
         foreach (var attachment in activity.Attachments)
         {
             List<IDBObject> techProcesses = LoadItems(activity.Session, attachment.ObjectID,
                 new List<int>() { MetaDataHelper.GetRelationTypeID(new Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)), 1, 1007 },
-                MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00185-306c-11d8-b4e9-00304f19f545" /*Техпроцесс базовый*/)),
+                new List<int>() { MetaDataHelper.GetObjectTypeID(new Guid("cad00187-306c-11d8-b4e9-00304f19f545" /*Техпроцесс единичный*/)) },
                 -1);
 
             if (techProcesses == null)
@@ -32,6 +34,10 @@ public class Script
             foreach (var techProcess in techProcesses.OrderBy(e => e.Caption))
             {
                 long workType = techProcess.GetAttributeByGuid(new Guid("cad0019c-306c-11d8-b4e9-00304f19f545" /*Вид производства*/)).AsInteger;
+
+                if (workType == 0)
+                    continue;
+
                 long workTypeDescription = activity.Session
                     .GetObject(workType)
                     .GetAttributeByGuid(new Guid(Intermech.SystemGUIDs.attributeDesignation /*Обозначение*/))
@@ -69,11 +75,21 @@ public class Script
 
                     var normObjAttr = normForOper != null ? normForOper.GetAttributeByGuid(new Guid("cadd93a5-306c-11d8-b4e9-00304f19f545" /*Штучно-калькуляционное время*/)) : null;
 
-                    if (string.IsNullOrWhiteSpace(opAttr.AsString) && !string.IsNullOrWhiteSpace(normObjAttr != null ? normObjAttr.AsString : string.Empty))
-                        opAttr.Value = operationNoInMO;
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(normObjAttr != null ? normObjAttr.AsString : string.Empty))
+                            opAttr.Value = operationNoInMO;
+                    }
+                    catch (Exception exc)
+                    {
+                        error += exc.Message + "\n";
+                    }
                 }
             }
         }
+
+        if (error.Length > 0)
+            throw new NotificationException(error);
     }
 
     private List<IDBObject> LoadItems(IUserSession session, long objID, List<int> relIDs, List<int> childObjIDs, int lv)
