@@ -31,8 +31,8 @@
 //        public ScriptResult Execute(IUserSession session, ImDocumentData document, Int64[] objectIDs)
 //        {
 //            Report report = new Report()
-//            { /*Устанавливаем режим отчета: true - расширенный, false - обычный*/
-//                compliteReport = true,
+//            {
+//                compliteReport = true /*Устанавливаем режим отчета: true - расширенный, false - обычный*/,
 //                originOrg = "БМЗ"
 //            };
 //            report.Run(session, document, objectIDs);
@@ -314,10 +314,6 @@
 
 //            foreach (DataRow row in dtCompos.Rows)
 //            {
-//                //if (Convert.ToInt32(row["F_OBJECT_TYPE"]) == _zagotType &&
-//                //    row["84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/].ToString() != "БМЗ")
-//                //    continue;
-
 //                Item item = GetItem(row, itemsDict, true, compositionType);
 //            }
 
@@ -357,6 +353,10 @@
 //                        .Where(e => e.Caption == item.Caption)
 //                        .FirstOrDefault(e => e.EntersInAsms.Values.Select(r => r.Caption).Where(t => itemEntersInAsms.Contains(t)).Count() > 0);
 
+//                    //связываем итоговое количество
+//                    if (associatedComplectUnit != null)
+//                        item.AmountSum = associatedComplectUnit.AmountSum;
+
 //                    //перезаписываем значения количества для item из данных associatedComplectUnit
 //                    foreach (Relation item_rwp in item.RelationsWithParent)
 //                    {
@@ -369,29 +369,6 @@
 //                        item_rwp.Amount = associatedItem_rwp != null ? associatedItem_rwp.Amount : item_rwp.Amount;
 //                    }
 //                }
-
-//                ////для заготовок находим компл ед, записываем ту же организацию
-//                //if(item.ObjectType == _zagotType)
-//                //{
-//                //    var relMO = item.RelationsWithParent.FirstOrDefault();
-//                //    if(relMO != null)
-//                //    {
-//                //        var relPart = relMO.Parent.RelationsWithParent.FirstOrDefault();
-//                //        if(relPart != null)
-//                //        {
-//                //            Item complectUnit;
-//                //            if(itemsDict.Item2.TryGetValue(relPart.Parent.ObjectId, out complectUnit))
-//                //            {
-//                //                complectUnit.SourseOrg = item.SourseOrg;
-//                //                //complectUnit.isCoop = item.isCoop;
-//                //                complectUnit.WriteToReportForcibly = true;
-//                //                //item.LinkToObjId = complectUnit.LinkToObjId;
-//                //                complectUnit.LinkToMaterial = item.MaterialId;
-//                //                item.LinkToMaterial = item.MaterialId;
-//                //            }
-//                //        }
-//                //    }
-//                //}
 
 //                //if (item is ComplexMaterialItem)
 //                //{
@@ -429,13 +406,16 @@
 
 //                bool hasContextObjects = false;
 
-//                var itemsAmount = item.GetAmount(true, ref hasContextObjects, ref item.HasEmptyAmount, ref exceptionInfo, null);
+//                var itemsAmount = item.GetAmount(true, ref hasContextObjects, ref item.HasEmptyAmount, exceptionInfo, null);
 
-//                if (exceptionInfo.Item2.Length > 0)
+//                if (exceptionInfo != null)
 //                {
-//                    _userError += string.Format("\nДанные объекта {0} (при формировании отчета для сборки {2} по извещению {3}) введены в систему IPS некорректно и были исключены из отчета. Требуется кооректировка данных. За подробностями обращайтесь к администраторам САПР.\n Сообщение:\n{1}\n", exceptionInfo.Item1, exceptionInfo.Item2, session.GetObject(_asm).Caption, session.GetObject(_eco).Caption);
+//                    if (exceptionInfo.Item2.Length > 0)
+//                    {
+//                        _userError += string.Format("\nДанные объекта {0} (при формировании отчета для сборки {2} по извещению {3}) введены в систему IPS некорректно и были исключены из отчета. Требуется кооректировка данных. За подробностями обращайтесь к администраторам САПР.\n Сообщение:\n{1}\n", exceptionInfo.Item1, exceptionInfo.Item2, session.GetObject(_asm).Caption, session.GetObject(_eco).Caption);
 
-//                    _adminError += string.Format("\nУ пользователя {2} при формировании отчета для сборки {3} по извещению {4} возникла ошибка. Данные объекта {0} введены в систему IPS некорректно и были исключены из отчета. Требуется кооректировка данных.\n Сообщение:\n{1}\n", exceptionInfo.Item1, exceptionInfo.Item2, session.UserName, session.GetObject(_asm).Caption, session.GetObject(_eco).Caption);
+//                        _adminError += string.Format("\nУ пользователя {2} при формировании отчета для сборки {3} по извещению {4} возникла ошибка. Данные объекта {0} введены в систему IPS некорректно и были исключены из отчета. Требуется кооректировка данных.\n Сообщение:\n{1}\n", exceptionInfo.Item1, exceptionInfo.Item2, session.UserName, session.GetObject(_asm).Caption, session.GetObject(_eco).Caption);
+//                    }
 //                }
 
 //                Item mainClone = item.Clone();
@@ -458,16 +438,14 @@
 //                    {
 //                        if (actualItem.AmountSum != null)
 //                        {
-//                            actualItem.AssociatedItemsAndSelf.Add(AmountItemClone);
+//                            actualItem.AssociatedItemsAndSelf[item.ObjectId] = (AmountItemClone);
 //                            actualItem.AmountSum.Add(AmountItemClone.AmountSum);
 
 //                            //обновляем данные по входямостям в сборки
 //                            foreach (var newItem in AmountItemClone.EntersInAsms)
 //                            {
-//                                if (actualItem.EntersInAsms.ContainsKey(newItem.Key))
+//                                if (!actualItem.EntersInAsms.ContainsKey(newItem.Key))
 //                                    actualItem.EntersInAsms[newItem.Key] = (newItem.Value);
-//                                else
-//                                    actualItem.EntersInAsms[newItem.Key] = newItem.Value;
 //                            }
 //                        }
 //                        else
@@ -485,9 +463,8 @@
 //            //|| MetaDataHelper.GetObjectTypeChildrenIDRecursive(new Guid("cad00250-306c-11d8-b4e9-00304f19f545" /*Детали*/)).Contains(e.ObjectType)
 //            ))
 //            {
-//                Tuple<string, string> exceptionInfo = null;
 //                bool hasContextObjects = false;
-//                asm.AmountSum = asm.GetAmount(false, ref hasContextObjects, ref asm.HasEmptyAmount, ref exceptionInfo, null).Values.FirstOrDefault();
+//                asm.AmountSum = asm.GetAmount(false, ref hasContextObjects, ref asm.HasEmptyAmount, null, null).Values.FirstOrDefault();
 //            }
 
 //            return composition;
@@ -722,20 +699,6 @@
 
 //            #endregion Первый состав по извещению
 
-//            #region Состав по извещения
-
-//            dt = DataHelper.GetChildSostavData(new List<ObjInfoItem>() { new ObjInfoItem(ecoObj.ObjectID) }, session, rels, -1, dbrsp, null,
-//            Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
-
-//            // Храним пару ид версии объекта + ид. физической величины
-//            // те объекты у которых посчитали количество
-//            // состав по извещен
-//            Dictionary<Tuple<long, long, string>, Item> eco = GetComposition(headerObj, dt, session);
-
-//            //AddToLog("Первый состав с извещением " + headerObj.ObjectID.ToString());
-
-//            #endregion Первый состав по извещению
-
 //            //сохраняем контекст редактирования
 //            long sessionid = session.EditingContextID;
 //            session.EditingContextID = 0;
@@ -757,8 +720,7 @@
 
 //            #region Итоговый состав материалов
 
-//            List<Material> resultComposition = new List<Material>();
-
+//            List<ReportRow> resultComposition = new List<ReportRow>();
 //            foreach (var resItem in baseComposition)
 //            {
 
@@ -777,79 +739,101 @@
 //                    }
 //                }
 
-//                Material material = new Material(resItem.Value, ecoItem);
+//                ReportRow material = new ReportRow(resItem.Value, ecoItem);
 //                resultComposition.Add(material);
 //            }
-//            foreach (var ecoItem in ecoComposition)
+//            foreach (var ecoItem in ecoComposition.Values)
 //            {
-//                Material material = new Material(null, ecoItem.Value);
+//                ReportRow material = new ReportRow(null, ecoItem);
 //                resultComposition.Add(material);
 //            }
-
-//            #endregion Итоговый состав материалов
 
 //            resultComposition = resultComposition
-//                .Where(e => e.WriteToReportForcibly || (e.Amount1 != e.Amount2) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
+//                .Where(e => (e.Amount_base.Value != e.Amount_eco.Value) || e.ReplacementGroupIsChanged || e.ReplacementStatusIsChanged)
 //                .ToList();
 
-//            List<Material> complectUnits_zag = new List<Material>();
-//            foreach (var material in resultComposition)
+//            #region Добавление в выборку деталей из заготовок
+
+//            List<ReportRow> zagMaterials = new List<ReportRow>();
+//            //материал и список комплектующих(деталей) связанных с ним
+//            Dictionary<ReportRow, List<ReportRow>> matPartPairs = new Dictionary<ReportRow, List<ReportRow>>();
+
+//            zagMaterials = resultComposition.Where(e => e.Type == _zagotType)
+//                .ToList();
+
+
+//            foreach (var zgMat in zagMaterials)
 //            {
-//                //для заготовок чужих организаций находим компл ед, записываем ту же организацию, группирующее значение, принудительно добавляем в отчет
-//                if (material.Type == _zagotType && material.SourseOrg != originOrg)
+//                var zagBaseComp = zgMat.BaseItem != null ? new Dictionary<long, Item>(zgMat.BaseItem.AssociatedItemsAndSelf) : new Dictionary<long, Item>();
+//                var zagEcoComp = zgMat.ECOItem != null ? new Dictionary<long, Item>(zgMat.ECOItem.AssociatedItemsAndSelf) : new Dictionary<long, Item>();
+
+//                List<ReportRow> zags = new List<ReportRow>();
+
+//                foreach (var resItem in zagBaseComp)
 //                {
-//                    Item complectUnit_eco = null;
-//                    Item zag_eco = null;
-//                    if (material.ecoItem != null)
+//                    Item ecoItem;
+//                    //Находим базовый объект в списке объектов из извещения
+//                    if (zagEcoComp.TryGetValue(resItem.Key, out ecoItem))
 //                    {
-//                        foreach (var zag in material.ecoItem.AssociatedItemsAndSelf)
-//                        {
-//                            Item part = zag.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
+//                        zagEcoComp.Remove(resItem.Key);
+//                    }
 
-//                            complectUnit_eco = eco.Values.FirstOrDefault(e => e.LinkToObjId == part.ObjectId);
-//                            zag_eco = complectUnit_eco != null ? null : eco.Values.FirstOrDefault(e => e.ObjectId == zag.ObjectId);
-//                            if (complectUnit_eco != null)
-//                            {
-//                                complectUnit_eco.SourseOrg = material.SourseOrg;
-//                                complectUnit_eco.WriteToReportForcibly = true;
-//                                complectUnit_eco.LinkToMaterial = material.MaterialId;
-//                                material.LinkToMaterial = material.MaterialId;
-//                            }
-//                            if (zag_eco != null)
-//                            {
-//                                complectUnit_eco = zag_eco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent;
+//                    ReportRow material = new ReportRow(resItem.Value, ecoItem);
+//                    zags.Add(material);
+//                }
+//                foreach (var ecoItem in zagEcoComp.Values)
+//                {
+//                    ReportRow material = new ReportRow(null, ecoItem);
+//                    zags.Add(material);
+//                }
 
-//                                complectUnit_eco.SourseOrg = material.SourseOrg;
-//                                complectUnit_eco.WriteToReportForcibly = true;
-//                                complectUnit_eco.LinkToMaterial = material.MaterialId;
-//                                material.LinkToMaterial = material.MaterialId;
-//                                complectUnit_eco.LinkToObjId = complectUnit_eco.ObjectId;
+//                zags = zags.Where(e => e.Amount_base.Value != e.Amount_eco.Value)
+//                   .ToList();
 
-//                                Tuple<string, string> exceptionInfo = null;
-//                                bool hasContextObjects = false;
+//                //получаем детали от измененных заготовок:
+//                List<ReportRow> parts = new List<ReportRow>();
 
-//                                complectUnit_eco.AmountSum = complectUnit_eco.GetAmount(false, ref hasContextObjects, ref complectUnit_eco.HasEmptyAmount, ref exceptionInfo, null).Values.FirstOrDefault();
-//                            }
+//                foreach (var zag in zags)
+//                {
+//                    var zagEco = zag.ECOItem;
+//                    var zagBase = zag.BaseItem;
 
-//                            if (complectUnit_eco != null)
-//                                complectUnits_zag.Add(new Material(null, complectUnit_eco));
-//                        }
+//                    var partEco = zagEco != null ? zagEco.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent : null;
+//                    var partBase = zagBase != null ? zagBase.RelationsWithParent.First().Parent.RelationsWithParent.First().Parent : null;
+
+//                    //далее пересчитываем общее количество деталей:
+
+//                    Tuple<string, string> exceptionInfo = null;
+//                    bool hasContextObjects = false;
+
+//                    if (partEco != null)
+//                    {
+//                        partEco.SourseOrg = zgMat.SourseOrg;
+//                        partEco.WriteToReportForcibly = true;
+//                        partEco.LinkToObjId = partEco.ObjectId;
+
+//                        partEco.AmountSum = partEco.GetAmount(false, ref hasContextObjects, ref partEco.HasEmptyAmount, exceptionInfo, null).Values.FirstOrDefault();
 
 //                    }
-//                }
-//            }
-//            resultComposition.AddRange(complectUnits_zag);
-//            //var zagLinkId = resultComposition.Where(e => e.WriteToReportForcibly).Select(e => e.LinkToMaterial).ToList();
+//                    if (partBase != null)
+//                    {
+//                        partBase.SourseOrg = zgMat.SourseOrg;
+//                        partBase.WriteToReportForcibly = true;
+//                        partBase.LinkToObjId = partBase.ObjectId;
 
-//            //foreach (var ecoItem in ecoComposition)
-//            //{
-//            //    //добавляем детали связанные с заготовками принудительно:
-//            //    if (ecoItem.Value.WriteToReportForcibly && ecoItem.Value.SourseOrg != originOrg)
-//            //    {
-//            //        if (!resultComposition.Select(e => e.MaterialId).ToList().Contains(ecoItem.Value.LinkToMaterial))
-//            //            resultComposition.Add(new Material(null, ecoItem.Value));
-//            //    }
-//            //}
+//                        partBase.AmountSum = partBase.GetAmount(false, ref hasContextObjects, ref partBase.HasEmptyAmount, exceptionInfo, null).Values.FirstOrDefault();
+//                    }
+//                    var newPart = new ReportRow(partBase, partEco);
+//                    parts.Add(newPart);
+//                }
+
+//                if (!matPartPairs.ContainsKey(zgMat))
+//                    matPartPairs[zgMat] = parts;
+//            }
+
+//            #endregion
+
+//            #endregion Итоговый состав материалов
 
 //            #region Изменение групп заменителей
 
@@ -858,44 +842,44 @@
 //                if (item.ReplacementGroupIsChanged || item.ReplacementStatusIsChanged)
 //                {
 //                    //с актуальной на допустимую
-//                    if (item.isActualReplacement1 && item.isPossableReplacement2)
+//                    if (item.BaseItem.isActualReplacement && item.ECOItem.isPossableReplacement)
 //                    {
 //                        item.SubstractAmount(amountIsIncrease: false);
-//                        var actual = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-//                        item.MaterialCaption += actual != null ? string.Format("\nприменяется взамен {0}", actual.Caption) : "";
+//                        var actual = resultComposition.FirstOrDefault(e => e.ECOItem.isActualReplacement && e.ECOItem.ReplacementGroup == item.ECOItem.ReplacementGroup);
+//                        item.MaterialCaption += actual != null ? string.Format("\nприменяется взамен {0}", actual.ECOItem.Caption) : "";
 //                    }
 
 //                    //с допустимой на актуальную
-//                    if (item.isPossableReplacement1 && item.isActualReplacement2)
+//                    if (item.BaseItem.isPossableReplacement && item.ECOItem.isActualReplacement)
 //                    {
 //                        item.SubstractAmount(amountIsIncrease: true);
-//                        var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-//                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
+//                        var possable = resultComposition.FirstOrDefault(e => e.ECOItem.isPossableReplacement && e.ECOItem.ReplacementGroup == item.ECOItem.ReplacementGroup);
+//                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.ECOItem.Caption) : "";
 //                    }
 
 //                    //с основной на допустимую
-//                    if ((!item.isActualReplacement1 && !item.isPossableReplacement1) && item.isPossableReplacement2)
+//                    if ((!item.BaseItem.isActualReplacement && !item.BaseItem.isPossableReplacement) && item.ECOItem.isPossableReplacement)
 //                    {
 //                        item.SubstractAmount(amountIsIncrease: false);
-//                        var actual = resultComposition.FirstOrDefault(e => e.isActualReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-//                        item.MaterialCaption += actual != null ? string.Format("\nприменяется взамен {0}", actual.Caption) : "";
+//                        var actual = resultComposition.FirstOrDefault(e => e.ECOItem.isActualReplacement && e.ECOItem.ReplacementGroup == item.ECOItem.ReplacementGroup);
+//                        item.MaterialCaption += actual != null ? string.Format("\nприменяется взамен {0}", actual.ECOItem.Caption) : "";
 //                    }
 
 //                    //с допустимой на основную
-//                    if (item.isPossableReplacement1 && (!item.isActualReplacement2 && !item.isPossableReplacement2))
+//                    if (item.BaseItem.isPossableReplacement && (!item.ECOItem.isActualReplacement && !item.ECOItem.isPossableReplacement))
 //                    {
 //                        item.SubstractAmount(amountIsIncrease: true);
 //                    }
 
 //                    //с основной на актуальную
-//                    if ((!item.isActualReplacement1 && !item.isPossableReplacement1) && item.isActualReplacement2)
+//                    if ((!item.BaseItem.isActualReplacement && !item.BaseItem.isPossableReplacement) && item.ECOItem.isActualReplacement)
 //                    {
-//                        var possable = resultComposition.FirstOrDefault(e => e.isPossableReplacement2 && e.ReplacementGroup2 == item.ReplacementGroup2);
-//                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.Caption) : "";
+//                        var possable = resultComposition.FirstOrDefault(e => e.ECOItem.isPossableReplacement && e.ECOItem.ReplacementGroup == item.ECOItem.ReplacementGroup);
+//                        item.MaterialCaption += possable != null ? string.Format("\nдопускается замена на {0}", possable.ECOItem.Caption) : "";
 //                    }
 
 //                    //с актуальной на основную
-//                    if (item.isActualReplacement1 && (!item.isActualReplacement2 && !item.isPossableReplacement2))
+//                    if (item.BaseItem.isActualReplacement && (!item.ECOItem.isActualReplacement && !item.ECOItem.isPossableReplacement))
 //                    {
 //                        continue;
 //                    }
@@ -905,7 +889,7 @@
 //            #endregion
 
 //            List<long> resultCompIds = resultComposition
-//                .Select(e => e.LinkToObj)
+//                .Select(e => e.LinkToObjId)
 //                .Where(e => e > 0)
 //                .Distinct()
 //                .ToList();
@@ -915,11 +899,13 @@
 //                .Where(e => e.Type == _zagotType)
 //                .Select(e => e.MaterialId));
 
+//            resultCompIds = resultCompIds.Distinct().ToList();
+
 
 //            #region Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
-//            List<Material> resultComposition_tech = new List<Material>();
-//            resultComposition_tech.AddRange(resultComposition.Where(e => e.isPurchased || e.isCoop));
+//            List<ReportRow> resultComposition_tech = new List<ReportRow>();
+//            resultComposition_tech.AddRange(resultComposition.Where(e => e.IsPurchased));
 
 //            if (resultCompIds.Count > 0)
 //            {
@@ -985,13 +971,12 @@
 //                    if (attrValue is string)
 //                        sourseOrg = attrValue.ToString();
 
-//                    var materials = resultComposition.Where(x => (x.LinkToObj == id) || x.MaterialId == id);
+//                    var materials = resultComposition.Where(x => (x.LinkToObjId == id) || x.MaterialId == id);
 //                    foreach (var mat in materials)
 //                    {
-//                        if (mat != null && (isPurchased || isCoop || mat.WriteToReportForcibly))
+//                        if (mat != null && (isPurchased || isCoop))
 //                        {
-//                            mat.isCoop = isCoop;
-//                            mat.isPurchased = isPurchased;
+//                            mat.IsPurchased = isPurchased;
 //                            mat.MaterialCode = code;
 //                            if (mat.Type == _zagotType)
 //                                mat.MaterialCaption = name;
@@ -1006,15 +991,15 @@
 //            #endregion Запись значений атрибутов материалов из соответствующих объектов конструкторского состава
 
 
-//            List<Material> reportComp = new List<Material>();
+//            List<ReportRow> reportComp = new List<ReportRow>();
 
 //            foreach (var item in resultComposition_tech)
 //            {
-//                Material repeatItem = null;
+//                ReportRow repeatItem = null;
 //                //когда есть повторение позиции, объединяем с уже записанной
 //                foreach (var repItem in reportComp)
 //                {
-//                    if (repItem.MaterialCaption == item.MaterialCaption && repItem.Type == item.Type && repItem.EdIzm == item.EdIzm)
+//                    if (repItem.MaterialCaption == item.MaterialCaption && repItem.Type == item.Type && repItem.MeasureUnit == item.MeasureUnit)
 //                        repeatItem = repItem;
 //                }
 
@@ -1024,7 +1009,22 @@
 //                    reportComp.Add(item);
 //            }
 
-//            reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption && e.EdIzm == i.EdIzm) > 1);
+//            reportComp.RemoveAll(e => reportComp.Count(i => e.MaterialCaption == i.MaterialCaption && e.MeasureUnit == i.MeasureUnit) > 1);
+
+//            reportComp = reportComp
+
+//                .OrderBy(e => e.MaterialCaption)
+//                //.Where(e => (e.Amount1 != e.Amount2))
+//                .ToList();
+
+//            reportComp.RemoveAll(e => e.Type == _zagotType);
+
+//            //добавляем новые детали в итоговую выборку
+//            foreach (var item in matPartPairs)
+//            {
+//                reportComp.AddRange(item.Value);
+//                reportComp.Add(item.Key);
+//            }
 
 //            foreach (var item in reportComp)
 //            {
@@ -1034,46 +1034,20 @@
 //                    || (item.SourseOrg != originOrg && item.Type == _zagotType))
 //                    item.MaterialCode += "\nот " + item.SourseOrg;
 
-//                ////оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
-//                //var keys1 = item.EntersInAsm1.Keys.ToList();
-//                //foreach (var key in keys1)
-//                //{
-//                //    Tuple<MeasuredValue, MeasuredValue> value = null;
-//                //    if (item.EntersInAsm2.TryGetValue(key, out value))
-//                //    {
-//                //        if (value.Item1 == null || value.Item2 == null || item.EntersInAsm1[key].Item1 == null || item.EntersInAsm1[key].Item2 == null)
-//                //        {
-//                //            item.EntersInAsm1.Remove(key);
-//                //            item.EntersInAsm2.Remove(key);
-//                //            continue;
-//                //        }
-//                //        if (value.Item1.Value == item.EntersInAsm1[key].Item1.Value && value.Item2.Value == item.EntersInAsm1[key].Item2.Value)
-//                //        {
-//                //            item.EntersInAsm1.Remove(key);
-//                //            item.EntersInAsm2.Remove(key);
-//                //        }
-//                //    }
-//                //}
-//                item.AmountInAsm1 = item.AmountInAsm1.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
-//                item.AmountInAsm2 = item.AmountInAsm2.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
+//                //item.AmountInAsm_eco = item.AmountInAsm_eco.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
+//                //item.AmountInAsm_base = item.AmountInAsm_base.OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
 //            }
-
-//            reportComp = reportComp
-
-//                .OrderBy(e => e.LinkToObj).ThenBy(e => e.SourseOrg).ThenBy(e => e.MaterialCaption)
-
-//                .Where(e => (e.Amount1 != e.Amount2)).ToList();
 
 //            if (writeTestingData)
 //            {
 //                foreach (var item in reportComp)
 //                {
-//                    System.IO.File.AppendAllText(testFile, string.Format("material {0}/{1}/{2}", item.MaterialCaption, item.Amount1, item.Amount2));
-//                    foreach (var asm in item.AmountInAsm1)
+//                    System.IO.File.AppendAllText(testFile, string.Format("material {0}/{1}/{2}", item.MaterialCaption, item.Amount_base, item.Amount_eco));
+//                    foreach (var asm in item.AmountInAsm_base)
 //                    {
 //                        System.IO.File.AppendAllText(testFile, string.Format(" asm1 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()));
 //                    }
-//                    foreach (var asm in item.AmountInAsm2)
+//                    foreach (var asm in item.AmountInAsm_base)
 //                    {
 //                        System.IO.File.AppendAllText(testFile, string.Format(" asm2 {0}/{1}/{2}", asm.Key, asm.Value.Item1.ToString(), asm.Value.Item2.ToString()));
 //                    }
@@ -1087,7 +1061,7 @@
 //            //AddToLog("fill header");
 
 
-//            ReportWriter reportWriter = new ReportWriter(document, reportComp, ecoObjCaption, headerObjCaption, compliteReport);
+//            ReportWordDocument reportWriter = new ReportWordDocument(document, reportComp, ecoObjCaption, headerObjCaption, compliteReport);
 
 //            reportWriter.WriteReport();
 
@@ -1115,15 +1089,15 @@
 //            //AddToOutputView(text);
 //        }
 
-//        private class ReportWriter
+//        private class ReportWordDocument
 //        {
 //            private ImDocumentData _document;
 //            private string _ecoCaption;
 //            private string _asmCaption;
-//            private List<Material> _resultComposition;
+//            private List<ReportRow> _resultComposition;
 //            private bool _compliteReport;
 
-//            public ReportWriter(ImDocumentData document, List<Material> resultComposition, string ecoCaption, string asmCaption, bool completeReport)
+//            public ReportWordDocument(ImDocumentData document, List<ReportRow> resultComposition, string ecoCaption, string asmCaption, bool completeReport)
 //            {
 //                _document = document;
 //                _ecoCaption = ecoCaption;
@@ -1152,8 +1126,6 @@
 
 //                DocumentTreeNode docrow = _document.Template.FindNode("Строка");
 //                DocumentTreeNode table = _document.FindNode("Таблица");
-//                DocumentTreeNode doccol2 = _document.Template.FindNode("Столбец2");
-//                DocumentTreeNode docrow2 = _document.Template.FindNode("Строка2");
 
 //                int N = 0;
 //                int totalIndex = 0;
@@ -1161,14 +1133,13 @@
 
 //                foreach (var item in _resultComposition)
 //                {
-//                    //AddToLog("createnode " + item.ToString());
 //                    DocumentTreeNode node = docrow.CloneFromTemplate(true, true);
 //                    if (_compliteReport)
 //                    {
 
 //                        #region Запись "было"
 
-//                        if (item.AmountInAsm1.Count > 0 || item.AmountInAsm2.Count > 0)
+//                        if (item.AmountInAsm_base.Count > 0 || item.AmountInAsm_eco.Count > 0)
 //                        {
 //                            N++;
 //                            totalIndex++;
@@ -1184,53 +1155,47 @@
 //                            }
 //                            else Write(node, "Материал", item.MaterialCaption);
 
-//                            if (item.Amount1 != 0 || !item.HasEmptyAmount1)
+//                            if (item.Amount_base.Value != 0 || !item.HasEmptyAmount)
 //                            {
-//                                Write(node, "Всего", Math.Round(item.Amount1, 3).ToString() + " " + item.EdIzm);
+//                                Write(node, "Всего", Math.Round(item.Amount_base.Value, 3).ToString() + " " + item.MeasureUnit);
 
 //                                if (N == 1)
 //                                {
 //                                    DocumentTreeNode row2 = node.FindNode("Строка2");
-//                                    if (item.AmountInAsm1.Count != 0)
+//                                    if (item.AmountInAsm_base.Count != 0)
 //                                    {
-//                                        WriteFirstAfterParent(row2, "Куда входит", item.AmountInAsm1.First().Key);
-//                                        WriteFirstAfterParent(row2, "Количество вхождений", item.AmountInAsm1.First().Value.Item1.Caption);
-//                                        WriteFirstAfterParent(row2, "Количество сборок", item.AmountInAsm1.First().Value.Item2.Caption);
+//                                        AddPresentationRowToCompleteReport(row2, item.AmountInAsm_eco, item.AmountInAsm_base.First(), totalIndex);
 //                                    }
 
-//                                    for (int j = 1; j < item.AmountInAsm1.Count; j++)
+//                                    for (int j = 1; j < item.AmountInAsm_base.Count; j++)
 //                                    {
 //                                        DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
 //                                        DocumentTreeNode col2 = node.FindNode("Столбец2");
 
 //                                        totalIndex++;
 //                                        col2.AddChildNode(node2, false, false);
-//                                        WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm1.Keys.ToList()[j]);
-//                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item1.Caption);
-//                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item2.Caption);
+
+//                                        AddPresentationRowToCompleteReport(node2, item.AmountInAsm_eco, item.AmountInAsm_base.ToArray()[j], totalIndex);
 //                                    }
 //                                }
 
 //                                if (N > 1)
 //                                {
 //                                    DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
-//                                    if (item.AmountInAsm1.Count != 0)
+//                                    if (item.AmountInAsm_base.Count != 0)
 //                                    {
-//                                        WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm1.First().Key);
-//                                        WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm1.First().Value.Item1.Caption);
-//                                        WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm1.First().Value.Item2.Caption);
+//                                        AddPresentationRowToCompleteReport(row2, item.AmountInAsm_eco, item.AmountInAsm_base.First(), totalIndex);
 //                                    }
 
-//                                    for (int j = 1; j < item.AmountInAsm1.Count; j++)
+//                                    for (int j = 1; j < item.AmountInAsm_base.Count; j++)
 //                                    {
 //                                        DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
 //                                        DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
 
 //                                        totalIndex++;
 //                                        col2.AddChildNode(node2, false, false);
-//                                        WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm1.Keys.ToList()[j]);
-//                                        WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item1.Caption);
-//                                        WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm1.Values.ToList()[j].Item2.Caption);
+
+//                                        AddPresentationRowToCompleteReport(node2, item.AmountInAsm_eco, item.AmountInAsm_base.ToArray()[j], totalIndex);
 //                                    }
 //                                }
 //                            }
@@ -1240,7 +1205,7 @@
 
 //                        #region Запись "стало"
 
-//                        if (item.AmountInAsm1.Count > 0 || item.AmountInAsm2.Count > 0)
+//                        if (item.AmountInAsm_base.Count > 0 || item.AmountInAsm_eco.Count > 0)
 //                        {
 //                            totalIndex++;
 //                            rowIndex++;
@@ -1248,27 +1213,24 @@
 
 //                            table.AddChildNode(node, false, false);
 
-//                            if (item.Amount2 != 0 || !item.HasEmptyAmount2)
+//                            if (item.Amount_eco.Value != 0 || !item.HasEmptyAmount)
 //                            {
-//                                Write(node, "Всего", Math.Round(item.Amount2, 3).ToString() + " " + item.EdIzm);
+//                                Write(node, "Всего", Math.Round(item.Amount_eco.Value, 3).ToString() + " " + item.MeasureUnit);
 
 //                                DocumentTreeNode row2 = node.FindNode(string.Format("Строка2 #{0}", totalIndex));
 //                                DocumentTreeNode col2 = node.FindNode(string.Format("Столбец2 #{0}", rowIndex));
-//                                if (item.AmountInAsm2.Count != 0)
+//                                if (item.AmountInAsm_eco.Count != 0)
 //                                {
-//                                    WriteFirstAfterParent(row2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm2.First().Key);
-//                                    WriteFirstAfterParent(row2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm2.First().Value.Item1.Caption);
-//                                    WriteFirstAfterParent(row2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm2.First().Value.Item2.Caption);
+//                                    AddPresentationRowToCompleteReport(row2, item.AmountInAsm_base, item.AmountInAsm_eco.First(), totalIndex);
 //                                }
 
-//                                for (int j = 1; j < item.AmountInAsm2.Count; j++)
+//                                for (int j = 1; j < item.AmountInAsm_eco.Count; j++)
 //                                {
 //                                    DocumentTreeNode node2 = row2.CloneFromTemplate(true, true);
 //                                    col2.AddChildNode(node2, false, false);
 //                                    totalIndex++;
-//                                    WriteFirstAfterParent(node2, string.Format("Куда входит #{0}", totalIndex), item.AmountInAsm2.Keys.ToList()[j]);
-//                                    WriteFirstAfterParent(node2, string.Format("Количество вхождений #{0}", totalIndex), item.AmountInAsm2.Values.ToList()[j].Item1.Caption);
-//                                    WriteFirstAfterParent(node2, string.Format("Количество сборок #{0}", totalIndex), item.AmountInAsm2.Values.ToList()[j].Item2.Caption);
+
+//                                    AddPresentationRowToCompleteReport(node2, item.AmountInAsm_base, item.AmountInAsm_eco.ToArray()[j], totalIndex);
 //                                }
 //                            }
 //                        }
@@ -1287,56 +1249,112 @@
 //                            Write(node, "Материал", item.MaterialCaption, new CharFormat("arial", 10, CharStyle.Italic));
 //                        else Write(node, "Материал", item.MaterialCaption);
 
-//                        if (item.Amount1 != 0 || !item.HasEmptyAmount1)
-//                            Write(node, "Было", Convert.ToString(Math.Round(item.Amount1, 3)));
+//                        if (item.Amount_base.Value != 0)
+//                            Write(node, "Было", Convert.ToString(Math.Round(item.Amount_base.Value, 3)));
 //                        else
 //                            Write(node, "Было", "-");
-//                        if (item.Amount2 != 0 || !item.HasEmptyAmount2)
-//                            Write(node, "Будет", Convert.ToString(Math.Round(item.Amount2, 3)));
+//                        if (item.Amount_eco.Value != 0)
+//                            Write(node, "Будет", Convert.ToString(Math.Round(item.Amount_eco.Value, 3)));
 //                        else
 //                            Write(node, "Будет", "-");
-//                        var diff = Math.Round(item.Amount2 - item.Amount1, 3);
+//                        var diff = Math.Round(item.Amount_eco.Value - item.Amount_base.Value, 3);
 //                        Write(node, "Разница", Convert.ToString(diff)/*Convert.ToString(item.Amount2 - item.Amount1)*/);
-//                        Write(node, "ЕдИзм", item.EdIzm);
+//                        Write(node, "ЕдИзм", item.MeasureUnit);
+
+//                        if (item.HasEmptyAmount)
+//                        {
+//                            foreach (DocumentTreeNode child in node.Nodes)
+//                            {
+//                                SelectNodeInTable(child, BorderStyles.SolidLine, 1, Color.Red, CharStyle.Bold, Color.Red);
+//                            }
+//                        }
 //                    }
 
-//                    if (item.HasEmptyAmount1 || item.HasEmptyAmount2)
+//                }
+//            }
+
+//            private void SelectNodeInTable(DocumentTreeNode node, BorderStyles borderStyles, float borderWidth, Color borderColor, CharStyle charStyle, Color textColor)
+//            {
+//                (node as RectangleElement).AssignLeftBorderLine(
+//                new BorderLine(borderColor, borderStyles, borderWidth), false);
+//                (node as RectangleElement).AssignRightBorderLine(
+//                new BorderLine(borderColor, borderStyles, borderWidth), false);
+//                (node as RectangleElement).AssignTopBorderLine(
+//                new BorderLine(borderColor, borderStyles, borderWidth), false);
+//                (node as RectangleElement).AssignBottomBorderLine(
+//                new BorderLine(borderColor, borderStyles, borderWidth), false);
+//                if (node is TextData)
+//                {
+//                    if ((node as TextData).CharFormat != null)
 //                    {
-//                        (node as RectangleElement).AssignLeftBorderLine(
-//                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                        (node as RectangleElement).AssignRightBorderLine(
-//                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                        (node as RectangleElement).AssignTopBorderLine(
-//                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                        (node as RectangleElement).AssignBottomBorderLine(
-//                        new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                        //AddToLog("item.HasEmptyAmount  " + item.ToString());
-//                        foreach (DocumentTreeNode child in node.Nodes)
+//                        CharFormat cf = (node as TextData).CharFormat.Clone();
+//                        cf.TextColor = textColor;
+//                        cf.CharStyle = charStyle;
+//                        (node as TextData).SetCharFormat(cf, false, false);
+//                    }
+//                }
+//            }
+
+//            private void AddPresentationRowToCompleteReport(DocumentTreeNode node, Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> amountInAsms_another, KeyValuePair<string, Tuple<MeasuredValue, MeasuredValue>> amountInCurrentAsm, int totalIndex)
+//            {
+//                bool changedField = false;
+
+//                if (amountInAsms_another.ContainsKey(amountInCurrentAsm.Key))
+//                    changedField = amountInCurrentAsm.Value.Item1.Value != amountInAsms_another[amountInCurrentAsm.Key].Item1.Value || amountInCurrentAsm.Value.Item2.Value != amountInAsms_another[amountInCurrentAsm.Key].Item2.Value ? true : false;
+//                else
+//                    changedField = true;
+
+//                if (totalIndex == 1)
+//                {
+
+//                    var charFormat = changedField ? new CharFormat("arial black", 9, CharStyle.Italic | CharStyle.Bold) :
+//                        new CharFormat("arial", 9, CharStyle.Regular);
+//                    WriteFirstAfterParent(node, "Куда входит", amountInCurrentAsm.Key, charFormat);
+//                    WriteFirstAfterParent(node, "Количество вхождений", amountInCurrentAsm.Value.Item1.Caption);
+//                    WriteFirstAfterParent(node, "Количество сборок", amountInCurrentAsm.Value.Item2.Caption);
+
+//                    if (changedField)
+//                        SelectNodeInTable(node, BorderStyles.SolidLine, 0.5f, Color.Black, CharStyle.Bold, Color.Black);
+
+//                    if (amountInCurrentAsm.Value.Item1.Value == 0 || amountInCurrentAsm.Value.Item2.Value == 0)
+//                        SelectNodeInTable(node, BorderStyles.SolidLine, 1, Color.Red, CharStyle.Bold, Color.Red);
+//                }
+//                else
+//                {
+//                    var charFormat = changedField ? new CharFormat("arial black", 9, CharStyle.Bold | CharStyle.Italic) :
+//                        new CharFormat("arial", 9, CharStyle.Regular);
+//                    WriteFirstAfterParent(node, string.Format("Куда входит #{0}", totalIndex), amountInCurrentAsm.Key, charFormat);
+//                    WriteFirstAfterParent(node, string.Format("Количество вхождений #{0}", totalIndex), amountInCurrentAsm.Value.Item1.Caption);
+//                    WriteFirstAfterParent(node, string.Format("Количество сборок #{0}", totalIndex), amountInCurrentAsm.Value.Item2.Caption);
+
+//                    if (changedField)
+//                        SelectNodeInTable(node, BorderStyles.SolidLine, 0.5f, Color.Black, CharStyle.Bold, Color.Black);
+
+//                    if (amountInCurrentAsm.Value.Item1.Value == 0 || amountInCurrentAsm.Value.Item2.Value == 0)
+//                        SelectNodeInTable(node, BorderStyles.SolidLine, 1, Color.Red, CharStyle.Bold, Color.Red);
+//                }
+
+//            }
+
+//            private void WriteOnlyDiffrenceEntersIn(ReportRow item)
+//            {
+//                //оставляем только различающиеся элементы EntersInAsm1 и EntersInAsm2
+//                var keys1 = item.AmountInAsm_base.Keys.ToList();
+//                foreach (var key in keys1)
+//                {
+//                    Tuple<MeasuredValue, MeasuredValue> value = null;
+//                    if (item.AmountInAsm_base.TryGetValue(key, out value))
+//                    {
+//                        if (value.Item1 == null || value.Item2 == null || item.AmountInAsm_base[key].Item1 == null || item.AmountInAsm_base[key].Item2 == null)
 //                        {
-//                            (child as RectangleElement).AssignLeftBorderLine(
-//                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                            (child as RectangleElement).AssignRightBorderLine(
-//                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                            (child as RectangleElement).AssignTopBorderLine(
-//                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                            (child as RectangleElement).AssignBottomBorderLine(
-//                            new BorderLine(Color.Red, BorderStyles.SolidLine, 1), false);
-//                            if (child is TextData)
-//                            {
-//                                //AddToLog("child  id = " + child.Id);
-//                                if ((child as TextData).CharFormat != null)
-//                                {
-//                                    CharFormat cf = (child as TextData).CharFormat.Clone();
-//                                    cf.TextColor = Color.Red;
-//                                    cf.CharStyle = CharStyle.Bold;
-//                                    //AddToLog("SetCharFormat");
-//                                    (child as TextData).SetCharFormat(cf, false, false);
-//                                }
-//                                else
-//                                {
-//                                    //AddToLog("(child as TextData).CharFormat == null");
-//                                }
-//                            }
+//                            item.AmountInAsm_base.Remove(key);
+//                            item.AmountInAsm_base.Remove(key);
+//                            continue;
+//                        }
+//                        if (value.Item1.Value == item.AmountInAsm_base[key].Item1.Value && value.Item2.Value == item.AmountInAsm_base[key].Item2.Value)
+//                        {
+//                            item.AmountInAsm_base.Remove(key);
+//                            item.AmountInAsm_base.Remove(key);
 //                        }
 //                    }
 //                }
@@ -1367,210 +1385,174 @@
 //                }
 
 //            }
-//            private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text)
+//            private void WriteFirstAfterParent(DocumentTreeNode parent, string tplid, string text, CharFormat charFormat = null)
 //            {
 //                TextData td = parent.FindNode(tplid) as TextData;
 //                if (td != null)
+//                {
+//                    td.SetCharFormat(charFormat == null ? new CharFormat("arial", 10, CharStyle.Regular) : charFormat, false, false);
 //                    td.AssignText(text, false, false, false);
+
+//                }
 //            }
 //        }
 
-//        private class Material
+//        private class ReportTable
 //        {
-//            public Material(Item baseItem, Item ecoItem)
+
+//        }
+
+//        private class ReportRow
+//        {
+//            public ReportRow(Item baseItem, Item ecoItem)
 //            {
-//                var item = ecoItem == null ? baseItem : ecoItem;
-//                MaterialId = item.MaterialId;
-//                MaterialCaption = item.Caption;
-//                Caption = item.Caption;
-//                Type = item.ObjectType;
-//                LinkToObj = item.LinkToObjId;
-//                MaterialCode = item.MaterialCode;
-//                isPurchased = item.isPurchased;
-//                isCoop = item.isCoop;
-//                SourseOrg = item.SourseOrg;
-//                WriteToReportForcibly = item.WriteToReportForcibly;
-
-//                if (baseItem != null)
-//                {
-//                    HasEmptyAmount1 = item.HasEmptyAmount;
-//                    if (baseItem.AmountSum != null)
-//                    {
-//                        isActualReplacement1 = baseItem.isActualReplacement;
-//                        isPossableReplacement1 = baseItem.isPossableReplacement;
-//                        ReplacementGroup1 = baseItem.ReplacementGroup;
-
-//                        Amount1 = baseItem.AmountSum.Value;
-//                        MeasureId = baseItem.AmountSum.MeasureID;
-//                        var descr = MeasureHelper.FindDescriptor(MeasureId);
-
-//                        AmountInAsm1 = _amountAsmInit(baseItem);
-
-//                        if (descr != null)
-//                            EdIzm = descr.ShortName;
-
-//                    }
-//                    else
-//                    {
-//                        HasEmptyAmount1 = true;
-//                    }
-//                }
-
-//                if (ecoItem != null)
-//                {
-//                    HasEmptyAmount2 = ecoItem.HasEmptyAmount;
-//                    if (ecoItem.AmountSum != null)
-//                    {
-//                        isActualReplacement2 = ecoItem.isActualReplacement;
-//                        isPossableReplacement2 = ecoItem.isPossableReplacement;
-//                        ReplacementGroup2 = ecoItem.ReplacementGroup;
-
-//                        Amount2 = ecoItem.AmountSum.Value;
-//                        MeasureId = ecoItem.AmountSum.MeasureID;
-//                        var descr = MeasureHelper.FindDescriptor(MeasureId);
-
-//                        AmountInAsm2 = _amountAsmInit(ecoItem);
-
-//                        if (descr != null)
-//                            EdIzm = descr.ShortName;
-//                    }
-//                    else
-//                    {
-//                        HasEmptyAmount2 = true;
-//                    }
-//                }
+//                this.BaseItem = baseItem;
+//                this.ECOItem = ecoItem;
 //            }
-//            private Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> _amountAsmInit(Item item)
+//            private Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> GetAmountInAsm(Item itemToInit)
 //            {
-//                var empty = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
 //                Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> entersInAsmToInit = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
-//                foreach (var asm in item.EntersInAsms)
+//                if (itemToInit == null)
 //                {
-//                    var asmAmount = asm.Value.AmountSum;
-//                    //var itemAmount = this.AmountToItem(item, asm.Value);
-
-//                    Tuple<string, string> exceptionInfo = null;
-//                    bool hasContextObjects = false;
-//                    var itemAmount = item.GetAmount(false, ref hasContextObjects, ref item.HasEmptyAmount, ref exceptionInfo, asm.Value).Values.FirstOrDefault();
-
-//                    //if (asmAmount != null && itemAmount != null)
-//                    //{
-//                    //    var measure = MeasureHelper.FindDescriptor(itemAmount.MeasureID);
-//                    //    var value = itemAmount.Value / asmAmount.Value;
-//                    //    itemAmount = MeasureHelper.ConvertToMeasuredValue(value.ToString() + " " + measure.ShortName);
-//                    //}
-
-//                    entersInAsmToInit[asm.Value.Caption] = new Tuple<MeasuredValue, MeasuredValue>(itemAmount == null ? empty : itemAmount, asmAmount == null ? empty : asmAmount);
-//                    //Amountinasm1.Key.Parent.RelationsWithParent.FirstOrDefault() != null ? Amountinasm1.Key.Parent.AmountSum : MeasureHelper.ConvertToMeasuredValue(Convert.ToString("1 шт"), false);
-
-//                    //var _null = MeasureHelper.ConvertToMeasuredValue(Convert.ToString("0 шт"), false);
-//                    //entersInAsmToInit[Amountinasm1.Key.Caption] = new Tuple<MeasuredValue, MeasuredValue>(Amountinasm1.Value != null ? Amountinasm1.Value : _null,
-//                    //    asmAmount != null ? asmAmount : _null);
+//                    return entersInAsmToInit;
 //                }
+
+//                //у материала заготовок берем все заготовки
+//                var items = new List<Item>();
+//                if (itemToInit.ObjectType == MetaDataHelper.GetObjectTypeID("cad001da-306c-11d8-b4e9-00304f19f545" /*Заготовка*/))
+//                    items.AddRange(itemToInit.AssociatedItemsAndSelf.Values);
+//                else
+//                    items.Add(itemToInit);
+
+//                foreach (var item in items)
+//                {
+//                    foreach (var asm in item.EntersInAsms)
+//                    {
+//                        var asmAmount = asm.Value.AmountSum;
+//                        bool hasContextObjects = false;
+//                        var itemAmount = item.GetAmount(false, ref hasContextObjects, ref item.HasEmptyAmount, null, asm.Value).Values.FirstOrDefault();
+
+//                        if (entersInAsmToInit.ContainsKey(asm.Value.Caption) && itemAmount != null)
+//                            entersInAsmToInit[asm.Value.Caption].Item1.Add(itemAmount.Clone() as MeasuredValue);
+//                        else
+//                            entersInAsmToInit[asm.Value.Caption] = new Tuple<MeasuredValue, MeasuredValue>(itemAmount == null ? _emptyAmount : itemAmount, asmAmount == null ? _emptyAmount : asmAmount);
+//                    }
+//                }
+
 //                return entersInAsmToInit;
 //            }
 
-//            ////копирует все дерево fromItem до нахождения с endItem, далее считает количество
-//            //private MeasuredValue AmountToItem(Item fromItem, Item endItem)
-//            //{
-//            //    Item fromItemClone = fromItem.Clone(true);
-//            //    TrimTreeOfComposition(fromItemClone, endItem);
+//            private readonly MeasuredValue _emptyAmount = MeasureHelper.ConvertToMeasuredValue("0 шт");
 
-//            //    Tuple<string, string> exceptionInfo = null;
-//            //    bool hasContextObjects = false;
-//            //    fromItemClone.AmountSum = fromItemClone.GetAmount(false, ref hasContextObjects, ref fromItemClone.HasEmptyAmount, ref exceptionInfo).Values.FirstOrDefault();
+//            public Item BaseItem { get; private set; }
+//            public Item ECOItem { get; private set; }
 
-//            //    return fromItemClone.AmountSum;
-//            //}
+//            public bool IsPurchased
+//            {
+//                get
+//                {
+//                    return (ECOItem == null ? BaseItem : ECOItem).isPurchased;
+//                }
+//                set { }
+//            }
+//            private long _materialId = 0;
+//            public long MaterialId
+//            {
+//                get
+//                {
+//                    _materialId = (ECOItem == null ? BaseItem : ECOItem).MaterialId;
+//                    return _materialId;
+//                }
+//            }
+//            private string _materialCaption;
+//            public string MaterialCaption
+//            {
+//                get
+//                {
+//                    if (_materialCaption == null)
+//                    {
+//                        _materialCaption = (ECOItem == null ? BaseItem : ECOItem).Caption;
+//                    }
+//                    return _materialCaption;
+//                }
+//                set
+//                {
+//                    _materialCaption = value;
+//                }
+//            }
 
-//            //private void TrimTreeOfComposition(Item fromItem, Item endItem)
-//            //{
-//            //    for (int i = 0; i < fromItem.RelationsWithParent.Count; i++)
-//            //    {
-//            //        Item selectedParentItem = fromItem.RelationsWithParent[i].Parent;
+//            private string _sourseOrg;
+//            public string SourseOrg
+//            {
+//                get
+//                {
+//                    if (_sourseOrg == null)
+//                    {
+//                        _sourseOrg = (ECOItem == null ? BaseItem : ECOItem).SourseOrg;
+//                    }
+//                    return _sourseOrg;
+//                }
+//                set
+//                {
+//                    _sourseOrg = value;
+//                }
+//            }
+//            private int _type;
+//            public int Type
+//            {
+//                get
+//                {
+//                    _type = (ECOItem == null ? BaseItem : ECOItem).ObjectType;
+//                    return _type;
+//                }
+//            }
 
-//            //        //указывает ли элемент на сборку?
-//            //        if (!selectedParentItem.EntersInAsms.ContainsKey(endItem.ObjectId) && selectedParentItem.ObjectId != endItem.ObjectId)
-//            //            fromItem.RelationsWithParent.RemoveAt(i);
-//            //        else
-//            //            TrimTreeOfComposition(fromItem.RelationsWithParent[i].Parent, endItem);
-//            //    }
-//            //}
-
-//            //private MeasuredValue AmountToRel(Relation fromRel, Item endItem)
-//            //{
-//            //    var nextItem = fromRel.Parent;
-//            //    if (nextItem.ObjectId != endItem.ObjectId)
-//            //    {
-//            //        var nextAmount = AmountToItem(nextItem, endItem);
-//            //        if (nextAmount != null)
-//            //        {
-//            //            if (fromRel.Amount != null)
-//            //                nextAmount.Multiply(fromRel.Amount);
-
-//            //            return nextAmount;
-//            //        }
-//            //        else return fromRel.Amount;
-//            //    }
-//            //    else
-//            //    {
-//            //        return fromRel.Amount;
-//            //    }
-//            //}
-
-//            //private MeasuredValue AmountToItem(Item fromItem, Item endItem)
-//            //{
-//            //    MeasuredValue result = null;
-//            //    foreach (var fromRel in fromItem.RelationsWithParent)
-//            //    {
-//            //        var amountToRel = AmountToRel(fromRel, endItem);
-//            //        if (result != null)
-//            //        {
-//            //            if (amountToRel != null)
-//            //                result.Add(amountToRel);
-//            //        }
-//            //        else
-//            //            result = amountToRel;
-//            //    }
-//            //    return result;
-//            //}
-
-//            private string materialCode;
-//            private string edIzm = string.Empty;
-
-//            public Item baseItem;
-//            public Item ecoItem;
-//            public bool isPurchased = false;
-//            public bool isCoop = false;
-//            public long MaterialId;
-//            public string MaterialCaption;
-//            public string Caption = string.Empty;
-//            public string SourseOrg;
-//            public long LinkToMaterial;
-//            public int Type;
-//            public long LinkToObj;
-//            public bool WriteToReportForcibly = false;
+//            private bool _replacementGroupIsChanged = false;
 //            public bool ReplacementGroupIsChanged
 //            {
 //                get
 //                {
-//                    return ReplacementGroup1 != ReplacementGroup2 && ReplacementGroup1 > 0;
+//                    if (BaseItem != null && ECOItem != null)
+//                        _replacementGroupIsChanged = BaseItem.ReplacementGroup != ECOItem.ReplacementGroup && BaseItem.ReplacementGroup > 0;
+//                    return _replacementGroupIsChanged;
 //                }
 //            }
+//            private bool _replacementStatusIsChanged = false;
 //            public bool ReplacementStatusIsChanged
 //            {
 //                get
 //                {
-//                    return isActualReplacement1 != isActualReplacement2 || isPossableReplacement1 != isPossableReplacement2;
+//                    if (BaseItem != null && ECOItem != null)
+//                        _replacementStatusIsChanged = BaseItem.isActualReplacement != ECOItem.isActualReplacement || BaseItem.isPossableReplacement != ECOItem.isPossableReplacement;
+//                    return _replacementStatusIsChanged;
 //                }
 //            }
 
-//            public int ReplacementGroup1 = -1;
-//            public bool isActualReplacement1 = false;
-//            public bool isPossableReplacement1 = false;
-//            public int ReplacementGroup2 = -1;
-//            public bool isActualReplacement2 = false;
-//            public bool isPossableReplacement2 = false;
+//            //public int ReplacementGroup1 = -1;
+//            //public bool isActualReplacement1 = false;
+//            //public bool isPossableReplacement1 = false;
+//            //public int ECOItem.ReplacementGroup = -1;
+//            //public bool isActualReplacement2 = false;
+//            //public bool isPossableReplacement2 = false;
+//            private string _measureUnit = string.Empty;
+//            public string MeasureUnit
+//            {
+//                get
+//                {
+//                    if (_measureUnit != string.Empty && (ECOItem.AmountSum != null || BaseItem.AmountSum != null))
+//                    {
+//                        var amountSum = ECOItem.AmountSum == null ? BaseItem.AmountSum : ECOItem.AmountSum;
+//                        var descr = MeasureHelper.FindDescriptor(amountSum.MeasureID);
+//                        if (descr != null)
+//                        {
+//                            _measureUnit = descr.ShortName;
+//                        }
+//                    }
+//                    return _measureUnit;
+//                }
+//            }
+
+//            private string _materialCode = string.Empty;
 
 //            /// <summary>
 //            /// Код АМТО
@@ -1579,119 +1561,177 @@
 //            {
 //                get
 //                {
-//                    return materialCode;
+//                    if (_materialCode == string.Empty)
+//                    {
+//                        _materialCode = (ECOItem == null ? BaseItem : ECOItem).MaterialCode;
+//                    }
+//                    return _materialCode;
 //                }
 //                set
 //                {
 //                    if (value == null)
-//                        materialCode = "";
+//                        _materialCode = string.Empty;
 //                    else
-//                        materialCode = value;
+//                        _materialCode = value;
 //                }
 //            }
+
+//            private long _linkToObjId = 0;
+//            public long LinkToObjId
+//            {
+//                get
+//                {
+//                    _linkToObjId = (ECOItem == null ? BaseItem : ECOItem).LinkToObjId;
+//                    return _linkToObjId;
+//                }
+//            }
+
+//            private MeasuredValue _amount_base;
+//            private MeasuredValue _amount_eco;
 
 //            /// <summary>
 //            /// Количество из базовой версии
 //            /// </summary>
-//            public double Amount1 = 0;
+//            public MeasuredValue Amount_base
+//            {
+//                get
+//                {
+//                    if (_amount_base == null)
+//                    {
+//                        _amount_base = BaseItem == null ? _emptyAmount : BaseItem.AmountSum;
+//                    }
+//                    return _amount_base;
+//                }
+//            }
 
 //            /// <summary>
 //            /// Количество из версии по извещению
 //            /// </summary>
-//            public double Amount2 = 0;
-
-//            public long MeasureId;
-
-//            public string EdIzm
+//            public MeasuredValue Amount_eco
 //            {
 //                get
 //                {
-//                    return edIzm;
-//                }
-//                set
-//                {
-//                    if (value == null)
-//                        edIzm = "";
-//                    else
-//                        edIzm = value;
+//                    if (_amount_eco == null)
+//                    {
+//                        _amount_eco = ECOItem == null ? _emptyAmount : ECOItem.AmountSum;
+//                    }
+//                    return _amount_eco;
 //                }
 //            }
 
-//            public bool HasEmptyAmount1 = false;
-//            public bool HasEmptyAmount2 = false;
+
+//            private Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> _amountInAsm_base = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
+//            private Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> _amountInAsm_eco = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
 
 //            /// <summary>
 //            /// Вхождения СЕ (название, кол-во, кол-во се)
 //            /// </summary>
-//            public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> AmountInAsm1 = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
+//            public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> AmountInAsm_base
+//            {
+//                get
+//                {
+//                    if (_amountInAsm_base.Count == 0)
+//                    {
+//                        _amountInAsm_base = GetAmountInAsm(BaseItem).OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
+//                    }
+//                    return _amountInAsm_base;
+//                }
+//                private set
+//                {
+//                    _amountInAsm_base = value;
+//                }
+//            }
+//            /// <summary>
+//            /// Вхождения СЕ (название, кол-во, кол-во се)
+//            /// </summary>
+//            public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> AmountInAsm_eco
+//            {
+//                get
+//                {
+//                    if (_amountInAsm_eco.Count == 0)
+//                    {
+//                        _amountInAsm_eco = GetAmountInAsm(ECOItem).OrderBy(e => e.Key).ToDictionary(e => e.Key, e => e.Value);
+//                    }
+//                    return _amountInAsm_eco;
+//                }
+//                private set
+//                {
+//                    _amountInAsm_eco = value;
+//                }
+//            }
 
-//            public Dictionary<string, Tuple<MeasuredValue, MeasuredValue>> AmountInAsm2 = new Dictionary<string, Tuple<MeasuredValue, MeasuredValue>>();
+//            public bool HasEmptyAmount
+//            {
+//                get
+//                {
+//                    return (ECOItem == null ? BaseItem : ECOItem).HasEmptyAmount;
+//                }
+//            }
+
+//            public string Caption
+//            {
+//                get
+//                {
+//                    return (ECOItem == null ? BaseItem : ECOItem).Caption;
+//                }
+//            }
 
 //            public void SubstractAmount(bool amountIsIncrease)
 //            {
 //                if (amountIsIncrease)
 //                {
-//                    this.Amount1 = 0;
+//                    this.Amount_base.Value = 0;
 
-//                    foreach (var inAsm1 in this.AmountInAsm1)
+//                    foreach (var inAsm1 in this.AmountInAsm_base)
 //                    {
 //                        Tuple<MeasuredValue, MeasuredValue> value = null;
-//                        if (this.AmountInAsm2.TryGetValue(inAsm1.Key, out value))
+//                        if (this.AmountInAsm_eco.TryGetValue(inAsm1.Key, out value))
 //                            inAsm1.Value.Item1.Substract(value.Item1);
 //                    }
 //                }
 //                else
 //                {
-//                    this.Amount2 = 0;
+//                    this.Amount_eco.Value = 0;
 
-//                    foreach (var inAsm2 in this.AmountInAsm2)
+//                    foreach (var inAsm2 in this.AmountInAsm_eco)
 //                    {
 //                        Tuple<MeasuredValue, MeasuredValue> value = null;
-//                        if (this.AmountInAsm1.TryGetValue(inAsm2.Key, out value))
+//                        if (this.AmountInAsm_base.TryGetValue(inAsm2.Key, out value))
 //                            inAsm2.Value.Item1.Substract(value.Item1);
 //                    }
 //                }
 //            }
 
-//            public Material Combine(Material material)
+//            public ReportRow Combine(ReportRow material)
 //            {
 //                if (material.SourseOrg != this.SourseOrg)
 //                    return this;
 
-//                //if (material.SourseOrg != "БМЗ")
-//                //    this.SourseOrg = material.SourseOrg;
+//                this.Amount_base.Add(material.Amount_base.Clone() as MeasuredValue);
+//                this.Amount_eco.Add(material.Amount_eco.Clone() as MeasuredValue);
 
-//                this.WriteToReportForcibly = material.WriteToReportForcibly ? true : this.WriteToReportForcibly;
-
-//                this.Amount1 += material.Amount1;
-
-//                this.Amount2 += material.Amount2;
-
-//                //if (!this.isCoop)
-//                //    this.SourseOrg = material.SourseOrg;
-
-//                foreach (var eia1 in material.AmountInAsm1)
+//                foreach (var eia1 in material.AmountInAsm_base)
 //                {
-//                    if (!this.AmountInAsm1.ContainsKey(eia1.Key))
-//                        this.AmountInAsm1.Add(eia1.Key, eia1.Value);
+//                    if (!this.AmountInAsm_base.ContainsKey(eia1.Key))
+//                        this.AmountInAsm_base.Add(eia1.Key, eia1.Value);
 //                    else
-//                        this.AmountInAsm1[eia1.Key].Item1.Add(eia1.Value.Item1);
+//                        this.AmountInAsm_base[eia1.Key].Item1.Add(eia1.Value.Item1);
 //                }
 
-//                foreach (var eia2 in material.AmountInAsm2)
+//                foreach (var eia2 in material.AmountInAsm_eco)
 //                {
-//                    if (!this.AmountInAsm2.ContainsKey(eia2.Key))
-//                        this.AmountInAsm2.Add(eia2.Key, eia2.Value);
+//                    if (!this.AmountInAsm_eco.ContainsKey(eia2.Key))
+//                        this.AmountInAsm_eco.Add(eia2.Key, eia2.Value);
 //                    else
-//                        this.AmountInAsm2[eia2.Key].Item1.Add(eia2.Value.Item1);
+//                        this.AmountInAsm_eco[eia2.Key].Item1.Add(eia2.Value.Item1);
 //                }
 //                return this;
 //            }
 
 //            public override string ToString()
 //            {
-//                return string.Format("MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; Amount1={3}; Amount2={4}",
-//                MaterialId, MaterialCode, MaterialCaption, Amount1, Amount2);
+//                return string.Format("MaterialId={0}; Code={1}; MaterialCaption={2}; Amount_base={3}; Amount_eco={4}",
+//                MaterialId, MaterialCode, MaterialCaption, Amount_base, Amount_eco);
 //            }
 //        }
 //    }
@@ -1708,10 +1748,10 @@
 //        public MeasuredValue Amount;
 //        public bool HasEmptyAmount = false;
 
-//        public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo, Item endItem)
+//        public IDictionary<long, MeasuredValue> GetAmount(ref bool hasContextObject, ref bool hasemptyAmountRelations, Tuple<string, string> exceptionInfo, Item endItem)
 //        {
 //            IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
-//            IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, ref exceptionInfo, endItem);
+//            IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(false, ref hasContextObject, ref hasemptyAmountRelations, exceptionInfo, endItem);
 //            //Количество инициализируется в методе GetItem
 //            // если значение количества пустое, записываем количество у связи, затем возвращаем
 //            if (Amount != null)
@@ -1793,12 +1833,12 @@
 
 //        public override string ToString()
 //        {
-//            string res = "Link=" + LinkId.ToString();
+//            string res = "Relation=" + LinkId.ToString();
 //            if (Parent != null)
 //                res = res + " parent= " + Parent.Caption.ToString();
 //            if (Child != null)
 //                res = res + " child= " + Child.Caption.ToString();
-//            res = res + " Количество = " + Convert.ToString(Amount);
+//            res = res + " amount = " + Convert.ToString(Amount);
 //            return res;
 //        }
 
@@ -1808,19 +1848,6 @@
 //            text = text + Environment.NewLine;
 //            System.IO.File.AppendAllText(file, text);
 //            //AddToOutputView(text);
-//        }
-
-//        public Relation Clone(Item item, bool withRelations)
-//        {
-//            Relation clone = new Relation();
-//            clone.Amount = this.Amount.Clone() as MeasuredValue;
-//            clone.Child = item.Clone(withRelations);
-//            clone.Parent = this.Parent.Clone(withRelations);
-//            clone.RelationTypeId = this.RelationTypeId;
-//            clone.LinkId = this.LinkId;
-//            clone.HasEmptyAmount = this.HasEmptyAmount;
-
-//            return clone;
 //        }
 //    }
 
@@ -1832,13 +1859,12 @@
 //        public override string ToString()
 //        {
 //            string objType1 = MetaDataHelper.GetObjectTypeName(ObjectType);
-//            //return string.Format( " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}", MaterialId, MaterialCode, MaterialCaption, Id, Caption, AmountSum, objType1);
 //            return string.Format(
-//            " Id={3}; Caption={4}; MaterialId={0}; MaterialCode={1}; MaterialCaption={2}; AmountSum={5}; ObjectType = {6}",
+//            "Id={3}; Caption={4}; Type={6}; Amount={5}; Code={1}; MaterialId={0}",
 //            MaterialId, MaterialCode, Caption, Id, Caption, AmountSum, objType1);
 //        }
 
-//        public virtual Item Clone(bool withRelations = false)
+//        public virtual Item Clone()
 //        {
 //            Item clone = new Item();
 //            clone.MaterialId = MaterialId;
@@ -1847,7 +1873,10 @@
 //            clone.ObjectId = ObjectId;
 //            clone.Caption = Caption;
 //            clone.ObjectType = ObjectType;
-//            clone._entersInAsms = _entersInAsms;
+//            clone.RelationsWithParent = RelationsWithParent;
+//            clone.RelationsWithChild = RelationsWithChild;
+//            clone._entersInAsms = new Dictionary<long, Item>(_entersInAsms);
+//            clone.AmountSum = this.AmountSum != null ? AmountSum.Clone() as MeasuredValue : null;
 //            clone.LinkToObjId = LinkToObjId;
 //            clone.isPurchased = isPurchased;
 //            clone.isPossableReplacement = isPossableReplacement;
@@ -1856,23 +1885,6 @@
 //            clone.isCoop = isCoop;
 //            clone.SourseOrg = SourseOrg;
 //            clone.WriteToReportForcibly = WriteToReportForcibly;
-//            clone.LinkToMaterial = LinkToMaterial;
-
-//            //if (withRelations)
-//            //{
-//            //    foreach (var relP in this.RelationsWithParent)
-//            //        clone.RelationsWithParent.Add(relP.Clone(this, withRelations));
-
-//            //    //foreach (var relC in this.RelationsWithChild)
-//            //    //    clone.RelationsWithChild.Add(relC.Clone(this));
-//            //}
-//            //else
-//            //{
-//            clone.RelationsWithChild = RelationsWithChild;
-//            clone.RelationsWithParent = RelationsWithParent;
-//            //}
-
-
 //            return clone;
 //        }
 //        public bool WriteToReportForcibly = false;
@@ -1888,19 +1900,18 @@
 //        public string Caption;
 //        public long LinkToObjId;
 //        public int ObjectType;
-//        public long LinkToMaterial;
 //        //группы замен
 //        public int ReplacementGroup = -1;
 //        public bool isActualReplacement = false;
 //        public bool isPossableReplacement = false;
 
-//        private List<Item> _associatedItemsAndSelf = new List<Item>();
-//        public List<Item> AssociatedItemsAndSelf
+//        private Dictionary<long, Item> _associatedItemsAndSelf = new Dictionary<long, Item>();
+//        public Dictionary<long, Item> AssociatedItemsAndSelf
 //        {
 //            get
 //            {
 //                if (_associatedItemsAndSelf.Count == 0)
-//                    _associatedItemsAndSelf.Add(this);
+//                    _associatedItemsAndSelf[this.ObjectId] = this.Clone();
 
 //                return _associatedItemsAndSelf;
 //            }
@@ -1953,7 +1964,7 @@
 
 //        private Dictionary<long, Item> _entersInAsms = new Dictionary<long, Item>();
 
-//        public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, ref Tuple<string, string> exceptionInfo, Item endItem)
+//        public IDictionary<long, MeasuredValue> GetAmount(bool checkContextObject, ref bool hasContextObject, ref bool hasemptyAmountRelations, Tuple<string, string> exceptionInfo, Item endItem)
 //        {
 //            MeasuredValue measuredValue = null;
 //            IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
@@ -1976,7 +1987,7 @@
 //                        continue;
 //                }
 
-//                IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, ref exceptionInfo, endItem);
+//                IDictionary<long, MeasuredValue> itemsAmount = relation.GetAmount(ref hasContextObject1, ref hasemptyAmountRelations, exceptionInfo, endItem);
 
 //                hasContextObject = hasContextObject | hasContextObject1;
 //                if (checkContextObject && !hasContextObject1 && !this.isContextObject) continue;

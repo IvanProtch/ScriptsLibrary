@@ -3,15 +3,31 @@
   <Class Name="EcoDiffReport.Report">
     <Position X="12.25" Y="1" Width="4" />
     <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Class Name="EcoDiffReport.Report.ReportWriter">
+      <Enum Name="EcoDiffReport.Report.CompositionType">
+        <TypeIdentifier>
+          <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Class Name="EcoDiffReport.Report.ReportWordDocument">
         <TypeIdentifier>
           <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
         </TypeIdentifier>
       </Class>
-      <Class Name="EcoDiffReport.Report.Material">
+      <Class Name="EcoDiffReport.Report.ReportTable">
+        <TypeIdentifier>
+          <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="EcoDiffReport.Report.ReportRow">
+        <Compartments>
+          <Compartment Name="Fields" Collapsed="true" />
+          <Compartment Name="Properties" Collapsed="true" />
+          <Compartment Name="Methods" Collapsed="true" />
+        </Compartments>
         <TypeIdentifier>
           <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
         </TypeIdentifier>
@@ -27,7 +43,7 @@
     <AssociationLine Name="Child" Type="EcoDiffReport.Item" FixedFromPoint="true">
       <Path>
         <Point X="8" Y="4.438" />
-        <Point X="4.25" Y="4.438" />
+        <Point X="5" Y="4.438" />
       </Path>
     </AssociationLine>
     <TypeIdentifier>
@@ -41,20 +57,15 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="EcoDiffReport.Item">
-    <Position X="2.25" Y="2.5" Width="2" />
+    <Position X="3" Y="2.5" Width="2" />
     <AssociationLine Name="RelationsWithChild" Type="EcoDiffReport.Relation" FixedFromPoint="true">
       <Path>
-        <Point X="4.25" Y="4.75" />
-        <Point X="8" Y="4.75" />
+        <Point X="5" Y="4.673" />
+        <Point X="8" Y="4.673" />
       </Path>
     </AssociationLine>
-    <AssociationLine Name="AmountInAsm" Type="Intermech.Interfaces.MeasuredValue">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.11" Y="-0.273" />
-      </MemberNameLabel>
-    </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QAACgAQIgAgABAAGgAQACAQAAABhAAAALIAAABCAABA=</HashCode>
+      <HashCode>QAACgAQIAAgABAAGgAQACAAAAIBhAAAALIAAAACAABA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -63,28 +74,33 @@
     <ShowAsCollectionAssociation>
       <Field Name="RelationsWithChild" />
       <Field Name="RelationsWithParent" />
-      <Property Name="AmountInAsm" />
     </ShowAsCollectionAssociation>
   </Class>
   <Class Name="EcoDiffReport.ComplexMaterialItem">
-    <Position X="0.5" Y="8.5" Width="2" />
+    <Position X="0.5" Y="9.5" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAIAAAAAAAAAAQAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="EcoDiffReport.MaterialItem">
-    <Position X="4.75" Y="8.5" Width="2.25" />
+    <Position X="3" Y="9.5" Width="2.25" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Enum Name="EcoDiffReport.MaterialItem.ComplexMaterialComponent" Collapsed="true">
+      <Enum Name="EcoDiffReport.MaterialItem.ComplexMaterialComponent">
         <TypeIdentifier>
           <NewMemberFileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</NewMemberFileName>
         </TypeIdentifier>
       </Enum>
     </NestedTypes>
+    <InheritanceLine Type="EcoDiffReport.Item" FixedToPoint="true">
+      <Path>
+        <Point X="4" Y="8.348" />
+        <Point X="4" Y="9.5" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
@@ -94,6 +110,13 @@
     <Position X="5.25" Y="0.75" Width="2.25" />
     <TypeIdentifier />
     <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="EcoDiffReport.BlankMaterial">
+    <Position X="5.75" Y="9.5" Width="2.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAEAAAAgAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs</FileName>
+    </TypeIdentifier>
   </Class>
   <Font Name="Segoe UI" Size="9.75" />
 </ClassDiagram>
