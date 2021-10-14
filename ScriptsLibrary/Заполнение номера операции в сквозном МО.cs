@@ -29,8 +29,9 @@ public class Script
             if (techProcesses == null)
                 continue;
 
-            //количество повторений кода вида производства
-            Dictionary<long, int> workTypeDescCounts = new Dictionary<long, int>();
+            ////количество повторений кода вида производства
+            //Dictionary<long, int> workTypeDescCounts = new Dictionary<long, int>();
+
             foreach (var techProcess in techProcesses.OrderBy(e => e.Caption))
             {
                 long workType = techProcess.GetAttributeByGuid(new Guid("cad0019c-306c-11d8-b4e9-00304f19f545" /*Вид производства*/)).AsInteger;
@@ -38,15 +39,23 @@ public class Script
                 if (workType == 0)
                     continue;
 
-                long workTypeDescription = activity.Session
-                    .GetObject(workType)
+                IDBObject workTypeObj = activity.Session.GetObject(workType);
+
+                long workTypeDescription = workTypeObj
                     .GetAttributeByGuid(new Guid(Intermech.SystemGUIDs.attributeDesignation /*Обозначение*/))
                     .AsInteger;
 
-                if (workTypeDescCounts.ContainsKey(workTypeDescription))
-                    workTypeDescCounts[workTypeDescription]++;
-                else
-                    workTypeDescCounts[workTypeDescription] = 1;
+                var arr = techProcess.Caption.Trim()
+                    .Split(' ');
+                var workTypeNo = Convert.ToInt32(
+                    string.Join("", arr
+                    [arr.Length - 2]
+                    .Where(c => char.IsDigit(c))).ToString());
+
+                //if (workTypeDescCounts.ContainsKey(workTypeDescription))
+                //    workTypeDescCounts[workTypeDescription]++;
+                //else
+                //    workTypeDescCounts[workTypeDescription] = 1;
 
                 List<IDBObject> techOperations = LoadItems(activity.Session, techProcess.ObjectID,
                     new List<int>() { MetaDataHelper.GetRelationTypeID(new Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)) },
@@ -59,7 +68,7 @@ public class Script
                 foreach (var operation in techOperations)
                 {
                     var operationNo = operation.GetAttributeByGuid(new Guid("cad009e6-306c-11d8-b4e9-00304f19f545" /*Номер объекта*/)).Value;
-                    string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeDescCounts[workTypeDescription], operationNo);
+                    string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeNo, operationNo);
 
                     var opAttr = operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/));
 
