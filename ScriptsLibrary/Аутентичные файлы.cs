@@ -8,6 +8,7 @@
 //модификации объекта меньше или равна дате изменения аутентичного файла.
 //Так же наличие и актуальность аутентичного файла необходимо проверить и на конструкторском ИИ.    
 
+//если у документа есть атрибут "Сканированый документ" (id 17913) и его значение "Да", то проверку не выполнять.
 using System;
 using Intermech.Interfaces;
 using Intermech.Interfaces.Workflow;
@@ -53,26 +54,32 @@ public class Script
                 var ob = attachment.Object;
                 var childsAndSelf = LoadItemChils(activity.Session, attachment.ObjectID, relations, types, -1);
                 childsAndSelf.Add(attachment.Object);
-                foreach (var item in childsAndSelf)
+                foreach (var doc in childsAndSelf)
                 {
-                    var fileAttr = item.GetAttributeByGuid(new Guid(SystemGUIDs.attributeFile));
+                    var scanDocAttr = doc.GetAttributeByGuid(new Guid("cadd9644-306c-11d8-b4e9-00304f19f545" /*Сканированный документ*/));
+
+                    if (scanDocAttr != null)
+                        if (scanDocAttr.AsBoolean)
+                            continue;
+
+                    var fileAttr = doc.GetAttributeByGuid(new Guid(SystemGUIDs.attributeFile));
                     bool hasAuthentical = false;
                     for (int i = 0; i < fileAttr.ValuesCount; i++)
                     {
                         MemoryStream ms = new MemoryStream();
-                        BlobProcReader bpr = new BlobProcReader(item.ObjectID, AttributableElements.Object, MetaDataHelper.GetAttributeTypeID(new Guid(SystemGUIDs.attributeFile)), i, 0, ms, null, null);
+                        BlobProcReader bpr = new BlobProcReader(doc.ObjectID, AttributableElements.Object, MetaDataHelper.GetAttributeTypeID(new Guid(SystemGUIDs.attributeFile)), i, 0, ms, null, null);
                         bpr.ReadData();
                         BlobInformation file = bpr.BlobInformation;
 
                         if (file.FileType == FileTypes.ftAuthentical)
                         {
                             hasAuthentical = true;
-                            if (item.ModifyDate > file.ModifyDate)
-                                error += string.Format("У объекта {0} обнаружен неактуальный аутентичный файл {1}.\n\r", item.NameInMessages, file.FileName);
+                            if (doc.ModifyDate > file.ModifyDate)
+                                error += string.Format("У объекта {0} обнаружен неактуальный аутентичный файл {1}.\n\r", doc.NameInMessages, file.FileName);
                         }
                     }
                     if(!hasAuthentical)
-                        error += string.Format("У объекта {0} не найден аутентичный файл.\n\r", item.NameInMessages);
+                        error += string.Format("У объекта {0} не найден аутентичный файл.\n\r", doc.NameInMessages);
                 }
             }
         }
