@@ -37,16 +37,32 @@ public class Script
                 long workType = techProcess.GetAttributeByGuid(new Guid("cad0019c-306c-11d8-b4e9-00304f19f545" /*Вид производства*/)).AsInteger;
 
                 if (workType == 0)
+                {
+                    error += string.Format("У {0} не указан вид производства\n", techProcess.NameInMessages);
                     continue;
+                }
 
                 IDBObject workTypeObj = activity.Session.GetObject(workType);
+
+                if (workTypeObj == null)
+                    continue;
 
                 long workTypeDescription = workTypeObj
                     .GetAttributeByGuid(new Guid(Intermech.SystemGUIDs.attributeDesignation /*Обозначение*/))
                     .AsInteger;
 
+                if (workTypeDescription == 0)
+                    continue;
+
                 var arr = techProcess.Caption.Trim()
                     .Split(' ');
+
+                if(arr.Length != 3)
+                {
+                    error += string.Format("У {0} используется неверный формат записи обозначения\n", techProcess.NameInMessages);
+                    continue;
+                }
+
                 var workTypeNo = Convert.ToInt32(
                     string.Join("", arr
                     [arr.Length - 2]
@@ -68,11 +84,18 @@ public class Script
                 foreach (var operation in techOperations)
                 {
                     var operationNo = operation.GetAttributeByGuid(new Guid("cad009e6-306c-11d8-b4e9-00304f19f545" /*Номер объекта*/)).Value;
+
                     string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeNo, operationNo);
 
                     var opAttr = operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/));
 
-					var normForOperList = LoadItems(activity.Session, operation.ObjectID,
+                    if (opAttr == null)
+                    {
+                        error += string.Format("У {0} не найден атрибут 'Номер операции в сквозном МО'\n", operation.NameInMessages);
+                        continue;
+                    }
+
+                    var normForOperList = LoadItems(activity.Session, operation.ObjectID,
                     new List<int>() { MetaDataHelper.GetRelationTypeID(new Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)) },
                     new List<int>() { MetaDataHelper.GetObjectTypeID(new Guid("cad005c2-306c-11d8-b4e9-00304f19f545" /*Нормирование на операцию*/)) },
                     -1);
