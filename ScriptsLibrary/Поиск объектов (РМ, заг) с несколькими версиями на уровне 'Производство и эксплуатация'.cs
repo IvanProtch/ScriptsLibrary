@@ -3,9 +3,11 @@
 // находит в сборке все подсборки и детали, проверяет у каждого объекта наличие нескольких версий на уровне 'Производство и эксплуатация' 
 // и гененирует исключение в виде списка ошибок
 using Intermech.Interfaces;
+using Intermech.Interfaces.Client;
 using Intermech.Interfaces.Compositions;
 using Intermech.Interfaces.Workflow;
 using Intermech.Kernel.Search;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
@@ -15,17 +17,18 @@ public class Script
 {
     public ICSharpScriptContext ScriptContext { get; set; }
 
-    #region Константы
+    private List<string> organizations = new List<string>() { "БМЗ", "ОП \"КСК-Брянск\""};
+
+    private List<int> types = new List<int> { 1090, 1176, 1292, 2506, 2732 };
 
     private const int inProductionLCstep = 1058;
 
-    #endregion Константы
-
-    #region Типы связей
-
     private const int relTypeConsist = 1; //Состав изделия
 
-    #endregion Типы связей
+    /// <summary>
+    /// ИД выборки, в которую будут добавлены найденные объекты
+    /// </summary>
+    private long selectionID = 100608488;
 
     public void Execute(IActivity activity)
     {
@@ -34,42 +37,60 @@ public class Script
             Debugger.Break();
         }
 
-        string resultMessage = string.Empty;
+        List<string> resultMessage = new List<string>();
         IUserSession session = activity.Session;
 
-        //только одно вложение
-        IAttachment attachment = activity.Attachments[0];
+        ISelectionsService selectServise = session.GetCustomService(typeof(ISelectionsService)) as ISelectionsService;
 
-        List<long> allObjs = LoadItemIds(session, attachment.ObjectID, new List<int> { relTypeConsist, MetaDataHelper.GetRelationTypeID(new System.Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/))  }, new List<int> { 1090, 1176, 1292  }, -1);
-        allObjs.Add(attachment.ObjectID);
-        for (int i = 0; i < allObjs.Count; i++)
+        List<long> objectsToSelection = new List<long>();
+
+        foreach (IAttachment attachment in activity.Attachments)
         {
-            long item = allObjs[i];
-            if (session.GetObject(item).GetAttributeByGuid(new System.Guid("84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/)).AsString != "БМЗ")
-                continue;
+            List<long> allObjs = LoadItemIds(session, attachment.ObjectID, new List<int> { relTypeConsist, MetaDataHelper.GetRelationTypeID(new System.Guid("cad0019f-306c-11d8-b4e9-00304f19f545" /*Технологический состав*/)) }, types, -1);
 
-            List<long> allObjVersions = session.GetObjectIDVersions(item);
-            if (allObjVersions.Count > 1)
+            allObjs.Add(attachment.ObjectID);
+
+            for (int i = 0; i < allObjs.Count; i++)
             {
-                List<IDBObject> prodVersions = allObjVersions
-                    .Select(version => session.GetObject(version))
-                    .Where(version => version.LCStep == inProductionLCstep)
-                    .ToList();
+                long item = allObjs[i];
 
-                if (prodVersions.Count > 1)
+                if (selectServise.ExistsObject(session, selectionID, item))
+                    continue;
+
+                if (!organizations.Contains(session.GetObject(item).GetAttributeByGuid(new System.Guid("84ffec95-9b97-4e83-b7d7-0a19833f171a" /*Организация-источник*/)).AsString))
+                    continue;
+
+                List<long> allObjVersions = session.GetObjectIDVersions(item);
+                if (allObjVersions.Count > 1)
                 {
-                    string wrongObjsStr = string.Empty;
-                    prodVersions.ForEach(obj =>
+                    List<IDBObject> prodVersions = allObjVersions
+                        .Select(version => session.GetObject(version))
+                        .Where(version => version.LCStep == inProductionLCstep)
+                        .ToList();
+
+                    if (prodVersions.Count > 1)
                     {
-                        wrongObjsStr += obj.ObjectID + "; ";
-                    });
-                    resultMessage += string.Format("\n\rУ объекта {0}({1}) обнаружены {2} версии на шаге 'Производство и эксплуатация': \n {3}", session.GetObject(item).NameInMessages, item, prodVersions.Count, wrongObjsStr);
+                        string wrongObjsStr = string.Empty;
+                        prodVersions.ForEach(obj =>
+                        {
+                            wrongObjsStr += obj.ObjectID + "; ";
+                        });
+                        var itemObj = session.GetObject(item);
+
+                        objectsToSelection.Add(item);
+
+                        resultMessage.Add(string.Format("\n\rУ объекта {0}({1}) обнаружены {2} версии на шаге 'Производство и эксплуатация': \n {3}", itemObj.NameInMessages, itemObj.ID, prodVersions.Count, wrongObjsStr));
+                    }
                 }
             }
         }
-        if (resultMessage.Length > 0)
+
+        selectServise.IncludeObjects(session, selectionID, objectsToSelection.ToArray());
+
+        if (resultMessage.Count > 0)
         {
-            throw new NotificationException(resultMessage);
+            resultMessage = resultMessage.OrderBy(e => e).ToList();
+            throw new NotificationException(string.Join("", resultMessage));
         }
     }
 

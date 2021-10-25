@@ -32,7 +32,7 @@ namespace EcoDiffReport
         {
             Report report = new Report()
             {
-                compliteReport = false /*Устанавливаем режим отчета: true - расширенный, false - обычный*/,
+                compliteReport = true /*Устанавливаем режим отчета: true - расширенный, false - обычный*/,
                 originOrg = "БМЗ",
             };
             report.Run(session, document, objectIDs);
@@ -697,7 +697,7 @@ namespace EcoDiffReport
 
             //Первый состав по извещению
             DataTable dt = DataHelper.GetChildSostavData(items, session, rels, -1, dbrsp, null,
-            Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
+            Intermech.SystemGUIDs.filtrationLatestVersions, null, enabledTypes);
 
             // Храним пару ид версии объекта + ид. физической величины
             Dictionary<Tuple<long, long, string>, Item> ecoComposition = GetComposition(headerObj, dt, session);
@@ -709,7 +709,7 @@ namespace EcoDiffReport
 
             //Второй состав без извещения
             dt = DataHelper.GetChildSostavData(items, session, rels, -1, dbrsp, null,
-            Intermech.SystemGUIDs.filtrationBaseVersions, null, enabledTypes);
+            Intermech.SystemGUIDs.filtrationLatestVersions, null, enabledTypes);
 
             session.EditingContextID = 0;
 

@@ -32,13 +32,12 @@ namespace EcoDiffReport
         {
             Report report = new Report()
             {
-                compliteReport = false /*Устанавливаем режим отчета: true - расширенный, false - обычный*/,
+                compliteReport = true /*Устанавливаем режим отчета: true - расширенный, false - обычный*/,
                 originOrg = "БМЗ",
             };
             report.Run(session, document, objectIDs);
 
-            if(report.compliteReport)
-                document.UpdateLayout(true);
+            document.UpdateLayout(true);
 
             return new ScriptResult(true, document);
         }
@@ -91,11 +90,6 @@ namespace EcoDiffReport
         private Item GetItem(DataRow row, Tuple<Dictionary<long, Item>, Dictionary<long, Item>> itemsDict, bool contextMode, CompositionType compositionType)
         {
             Item item = null;
-
-            object level = row["cad00030-306c-11d8-b4e9-00304f19f545" /*Уровень продвижения объекта*/];
-            if (level is int)
-                if ((int)level == 6)
-                    return item;
 
             long linkId = 0;
             object link = row["cad001be-306c-11d8-b4e9-00304f19f545" /*Ссылка на объект*/];
@@ -608,10 +602,6 @@ namespace EcoDiffReport
             columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
             ColumnNameMapping.Guid, SortOrders.NONE, 0));
 
-            attrId = MetaDataHelper.GetAttributeTypeID("cad00030-306c-11d8-b4e9-00304f19f545" /*Уровень продвижения объекта*/);
-            columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
-            ColumnNameMapping.Guid, SortOrders.NONE, 0));
-            
             attrId = MetaDataHelper.GetAttributeTypeID("34b64b00-d430-48e4-8692-f52a7485a10a" /*Количество основы (БМЗ)*/);
             columns.Add(new ColumnDescriptor(attrId, AttributeSourceTypes.Relation, ColumnContents.Text,
             ColumnNameMapping.Guid, SortOrders.NONE, 0));
@@ -997,22 +987,28 @@ namespace EcoDiffReport
                 if (totalIndex == 1)
                 {
 
-                    var charFormat = changedField ? new CharFormat("arial", 10, CharStyle.Italic | CharStyle.Bold) :
-                        new CharFormat("arial", 10, CharStyle.Regular);
+                    var charFormat = changedField ? new CharFormat("arial", 10, CharStyle.Underline | CharStyle.Bold) :
+                        new CharFormat("arial", 8, CharStyle.Regular);
                     WriteFirstAfterParent(node, "Куда входит", amountInCurrentAsm.Key, charFormat);
-                    WriteFirstAfterParent(node, "Количество вхождений", amountInCurrentAsm.Value.Item1.Caption, charFormat);
-                    WriteFirstAfterParent(node, "Количество сборок", amountInCurrentAsm.Value.Item2.Caption, charFormat);
+                    WriteFirstAfterParent(node, "Количество вхождений", amountInCurrentAsm.Value.Item1.Caption);
+                    WriteFirstAfterParent(node, "Количество сборок", amountInCurrentAsm.Value.Item2.Caption);
+
+                    if (changedField)
+                        SelectNodeInTable(node, BorderStyles.None, 0, Color.Black, CharStyle.Regular, Color.Gray);
 
                     if (amountInCurrentAsm.Value.Item1.Value == 0 || amountInCurrentAsm.Value.Item2.Value == 0)
                         SelectNodeInTable(node, BorderStyles.SolidLine, 1, Color.Red, CharStyle.Bold, Color.Red);
                 }
                 else
                 {
-                    var charFormat = changedField ? new CharFormat("arial", 10, CharStyle.Bold | CharStyle.Italic) :
-                        new CharFormat("arial", 10, CharStyle.Regular);
+                    var charFormat = changedField ? new CharFormat("arial", 10, CharStyle.Bold | CharStyle.Underline) :
+                        new CharFormat("arial", 8, CharStyle.Regular);
                     WriteFirstAfterParent(node, string.Format("Куда входит #{0}", totalIndex), amountInCurrentAsm.Key, charFormat);
-                    WriteFirstAfterParent(node, string.Format("Количество вхождений #{0}", totalIndex), amountInCurrentAsm.Value.Item1.Caption, charFormat);
-                    WriteFirstAfterParent(node, string.Format("Количество сборок #{0}", totalIndex), amountInCurrentAsm.Value.Item2.Caption, charFormat);
+                    WriteFirstAfterParent(node, string.Format("Количество вхождений #{0}", totalIndex), amountInCurrentAsm.Value.Item1.Caption);
+                    WriteFirstAfterParent(node, string.Format("Количество сборок #{0}", totalIndex), amountInCurrentAsm.Value.Item2.Caption);
+
+                    if (changedField)
+                        SelectNodeInTable(node, BorderStyles.None, 0, Color.Black, CharStyle.Regular, Color.Gray);
 
                     if (amountInCurrentAsm.Value.Item1.Value == 0 || amountInCurrentAsm.Value.Item2.Value == 0)
                         SelectNodeInTable(node, BorderStyles.SolidLine, 1, Color.Red, CharStyle.Bold, Color.Red);
@@ -1565,9 +1561,9 @@ namespace EcoDiffReport
             {
                 get
                 {
-                    if(_measureUnit == string.Empty && (ECOItem != null || BaseItem != null))
+                    if(_measureUnit != string.Empty && (ECOItem.AmountSum != null || BaseItem.AmountSum != null))
                     {
-                        var amountSum = ECOItem == null ? BaseItem.AmountSum : ECOItem.AmountSum;
+                        var amountSum = ECOItem.AmountSum == null ? BaseItem.AmountSum : ECOItem.AmountSum;
                         var descr = MeasureHelper.FindDescriptor(amountSum.MeasureID);
                         if (descr != null)
                         {
