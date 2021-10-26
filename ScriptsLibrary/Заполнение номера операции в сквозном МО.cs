@@ -87,11 +87,11 @@ public class Script
 
                     string operationNoInMO = string.Format("{0}.{1}.{2:000}", workTypeDescription, workTypeNo, operationNo);
 
-                    var opAttr = operation.GetAttributeByGuid(new Guid("5a2e2fe6-d403-4249-b565-d372df44b803" /*Номер операции в сквозном МО*/));
+                    var opAttr = operation.GetAttributeByGuid(new Guid("a6b34136-17d9-480e-8658-29642e557591" /*Номер операции для ERP*/));
 
                     if (opAttr == null)
                     {
-                        error += string.Format("У {0} не найден атрибут 'Номер операции в сквозном МО'\n", operation.NameInMessages);
+                        error += string.Format("У {0} не найден атрибут 'Номер операции для ERP'\n", operation.NameInMessages);
                         continue;
                     }
 
