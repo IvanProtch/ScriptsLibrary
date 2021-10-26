@@ -34,8 +34,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
-    <Compile Include="Class2.cs" />
     <Compile Include="Item.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Script.cs" />
@@ -58,6 +56,7 @@
     <Compile Include="Проверка ИИ пользователя из группы.cs" />
     <Compile Include="Проверка подписей директора.cs" />
     <Compile Include="Проверка технологического ИИ на заполнение даты изменения в ERP.cs" />
+    <Compile Include="Скрипт для ИИ.cs" />
     <Compile Include="Экспорт данных\Выгрузка PDF из констр ИИ и СБ.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП обратно.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП.cs" />
@@ -106,6 +105,17 @@
     <Reference Include="Intermech.Interfaces.Workflow, Version=6.0.6.1791, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Interfaces.XmlExchange, Version=2.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.XmlExchange.Client, Version=2.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="Misoft.V8Enterprise.Client, Version=6.0.5.49, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\Mydoc\ProtchenkoIV\Мои документы\Misoft.V8Enterprise.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Misoft.V8Enterprise.Interfaces, Version=6.0.5.49, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\Mydoc\ProtchenkoIV\Мои документы\Misoft.V8Enterprise.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Misoft.V8Enterprise.Server">
+      <HintPath>D:\Mydoc\ProtchenkoIV\Мои документы\Misoft.V8Enterprise.Server.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.Linq" />
