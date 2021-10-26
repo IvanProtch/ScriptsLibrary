@@ -1,0 +1,209 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
+  <Class Name="Misoft.V8Enterprise.Constants" Collapsed="true">
+    <Position X="0.75" Y="1.25" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Globals" Collapsed="true">
+    <Position X="2.5" Y="1.25" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.Catalog" Collapsed="true">
+    <Position X="18.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogMeasure" Collapsed="true">
+    <Position X="8.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogNomenclature" Collapsed="true">
+    <Position X="13" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogCounterparty">
+    <Position X="17.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogIPSArchive">
+    <Position X="26.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogIPSDocument">
+    <Position X="28.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogIPSFolderClassificator">
+    <Position X="4" Y="1.75" Width="2" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogNotice">
+    <Position X="19.75" Y="1.75" Width="1.5" />
+    <NestedTypes>
+      <Class Name="Misoft.V8Enterprise.Catalogs.CatalogNotice.ChangeItem" Collapsed="true">
+        <TypeIdentifier />
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CompareFromNotice" Collapsed="true">
+    <Position X="39.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogNomenclatureSpecification">
+    <Position X="31" Y="1.75" Width="2" />
+    <NestedTypes>
+      <Class Name="Misoft.V8Enterprise.Catalogs.CatalogNomenclatureSpecification.AnalogItem" Collapsed="true">
+        <TypeIdentifier />
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogSectionOfSpecification" Collapsed="true">
+    <Position X="37.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CompositionItem" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="35.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.AssemblyUnit">
+    <Position X="35.75" Y="3.5" Width="2.25" />
+    <TypeIdentifier />
+    <ShowAsAssociation>
+      <Field Name="RoutePoint" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogAssembleUnit" Collapsed="true">
+    <Position X="22" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogProcessOperation">
+    <Position X="33.25" Y="1.75" Width="2" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogRascexRoute" Collapsed="true">
+    <Position X="6.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogRouteProcessing" Collapsed="true">
+    <Position X="10.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogTechnologyMap" Collapsed="true">
+    <Position X="15.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.CatalogWorkCenter">
+    <Position X="24.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.RoutePoint">
+    <Position X="42.25" Y="3.5" Width="2" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.TechnologicalBlankItem" Collapsed="true">
+    <Position X="35.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.TechnologicalRouteItem">
+    <Position X="38.5" Y="2.25" Width="3" />
+    <TypeIdentifier />
+    <ShowAsAssociation>
+      <Field Name="ProcessOperation" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.TechnologicalTransitionItem" Collapsed="true">
+    <Position X="41.75" Y="2" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Catalogs.Package">
+    <Position X="33.25" Y="7" Width="5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Interfaces.CompressionHelper">
+    <Position X="18.5" Y="10.75" Width="2.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Interfaces.IPSExchangeMessage">
+    <Position X="21.75" Y="10.75" Width="3.25" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Interfaces.ReportResult">
+    <Position X="29.5" Y="15" Width="3" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Interfaces.ExportSettings">
+    <Position X="25.25" Y="11.5" Width="3.75" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Interfaces.IPSExchangeMessageManager" Collapsed="true">
+    <Position X="18" Y="12.5" Width="2.25" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Interfaces.IPSExchangeStatistic" Collapsed="true">
+    <Position X="20.25" Y="12.5" Width="2.25" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="Misoft.V8Enterprise.Interfaces.ManagerForIPSDocuments">
+    <Position X="22" Y="13.25" Width="2.5" />
+    <TypeIdentifier />
+  </Class>
+  <Struct Name="Misoft.V8Enterprise.Interfaces.DataIPSObect">
+    <Position X="18.5" Y="13.75" Width="3" />
+    <TypeIdentifier />
+  </Struct>
+  <Interface Name="Misoft.V8Enterprise.Interfaces.IV8Enterprise">
+    <Position X="29.5" Y="11.5" Width="3.25" />
+    <TypeIdentifier />
+  </Interface>
+  <Enum Name="Misoft.V8Enterprise.Catalogs.NoticeOperaion" Collapsed="true">
+    <Position X="46" Y="0.5" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Catalogs.NoticeType" Collapsed="true">
+    <Position X="42.5" Y="1.25" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Catalogs.EnumTypesOfTimeNorms" Collapsed="true">
+    <Position X="44.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Catalogs.EnumTypeOfTransitionItem" Collapsed="true">
+    <Position X="42.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.V8Version" Collapsed="true">
+    <Position X="20.25" Y="18.5" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.V8Mode" Collapsed="true">
+    <Position X="18.5" Y="18.5" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.ExportVariant" Collapsed="true">
+    <Position X="20.25" Y="17.75" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.RuleVariant" Collapsed="true">
+    <Position X="22" Y="17.75" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.ConnectFrom" Collapsed="true">
+    <Position X="18.5" Y="17" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.ExportMode" Collapsed="true">
+    <Position X="18.5" Y="17.75" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.eMessageStatus" Collapsed="true">
+    <Position X="20.25" Y="17" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="Misoft.V8Enterprise.Interfaces.eTypeStatistic" Collapsed="true">
+    <Position X="22" Y="17" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Font Name="Segoe UI" Size="9.75" />
+</ClassDiagram>

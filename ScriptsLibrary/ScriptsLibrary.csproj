@@ -42,7 +42,6 @@
     <Compile Include="Заполнение номера операции в сквозном МО_кеширование иерархии.cs" />
     <Compile Include="Заполнения номера операции в сквозном МО_запись номера из се.cs" />
     <Compile Include="Назначение прав доступа.cs" />
-    <Compile Include="Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый_вариант2.cs" />
     <Compile Include="Поиск объектов %28дет и СЕ%29 с несколькими версиями на уровне %27Производство и эксплуатация%27 - Копировать.cs" />
     <Compile Include="Проверка атрибутов «Дата изменения в ERP БМЗ» или «Указание о внедрении».cs" />
     <Compile Include="Проверка ИИ исполнителя.cs" />
@@ -51,12 +50,12 @@
     <Compile Include="Выбор исполнителя из группы.cs" />
     <Compile Include="Изменение шага ЖЦ св ИИ\Перевод на шаг %27В разработке%27 связанных техн ИИ_адм версия.cs" />
     <Compile Include="Изменение шага ЖЦ св ИИ\Согласование связанных техн ИИ.cs" />
-    <Compile Include="Отчеты сравнения составов\Отчет по сравнению составов базового и контексту по ИИ %28было-стало %29 БМЗ.cs" />
     <Compile Include="Отчеты сравнения составов\Отчет сравнения составов БМЗ_новый.cs" />
     <Compile Include="Проверка ИИ пользователя из группы.cs" />
     <Compile Include="Проверка подписей директора.cs" />
     <Compile Include="Проверка технологического ИИ на заполнение даты изменения в ERP.cs" />
     <Compile Include="Скрипт для ИИ.cs" />
+    <Compile Include="Скрипт для ИИ_Клиент.cs" />
     <Compile Include="Экспорт данных\Выгрузка PDF из констр ИИ и СБ.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП обратно.cs" />
     <Compile Include="Нормирование\Изменение значения атрибута %27Архив%27 у ТП.cs" />
@@ -83,6 +82,7 @@
       <Link>.editorconfig</Link>
     </None>
     <None Include="ABCpdf.chm" />
+    <None Include="ClassDiagram1.cd" />
     <None Include="packages.config" />
     <None Include="waswill_intermech.cd" />
     <None Include="Отчеты сравнения составов\ClassDiagram1.cd" />
@@ -105,10 +105,6 @@
     <Reference Include="Intermech.Interfaces.Workflow, Version=6.0.6.1791, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.Interfaces.XmlExchange, Version=2.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="Intermech.XmlExchange.Client, Version=2.0.0.1, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Misoft.V8Enterprise.Client, Version=6.0.5.49, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\Mydoc\ProtchenkoIV\Мои документы\Misoft.V8Enterprise.Client.dll</HintPath>
-    </Reference>
     <Reference Include="Misoft.V8Enterprise.Interfaces, Version=6.0.5.49, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>D:\Mydoc\ProtchenkoIV\Мои документы\Misoft.V8Enterprise.Interfaces.dll</HintPath>

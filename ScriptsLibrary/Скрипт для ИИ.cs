@@ -22,7 +22,7 @@ namespace MyIPSClient
 
         public void Execute(IActivity activity)
         {
-
+            
             ExportMode exportMode = ExportMode.ExportNotice;
             ExportSettings exportSettings = new ExportSettings();
 
@@ -54,7 +54,7 @@ namespace MyIPSClient
 
                     long idObjectIPS = attachent.ObjectID;
 
-                    Misoft.V8Enterprise.Catalogs.Package package = new Misoft.V8Enterprise.Catalogs.Package();
+                    Package package = new Package();
                     package.StartExportTime = DateTime.Now;
                     package.TypeExchangeFuction = exportMode.ToString();
                     package.PluginVersion = "";
