@@ -1,5 +1,3 @@
-//Скрипт v.3.1 - Добавлены входимости материалов в ближайшие сборки
-//Скрипт v.4.0 - Расчет ведется по технологическому составу
 using System;
 using System.Windows.Forms;
 using System.Linq;
@@ -64,8 +62,7 @@ namespace EcoDiffReport
         {
             IDictionary<long, MeasuredValue> result = new Dictionary<long, MeasuredValue>();
             IDictionary<long, MeasuredValue> itemsAmount = Parent.GetAmount(ref hasemptyAmountRelations, exceptionInfo, endItem);
-            //Количество инициализируется в методе GetItem
-            // если значение количества пустое, записываем количество у связи, затем возвращаем
+
             if (Amount != null)
             {
                 if (itemsAmount == null || itemsAmount.Count == 0)
@@ -164,7 +161,7 @@ namespace EcoDiffReport
     }
 
     /// <summary>
-    /// Объект. Хранит ссылки на связи Link; сумму количества материала (получено из связей)
+    /// Объект. Хранит ссылки на связи; сумму количества материала (получено из связей)
     /// </summary>
     public class Item
     {
