@@ -371,7 +371,6 @@ namespace EcoDiffReport
 
                 return _connectedItemsAndSelf;
             }
-            set { }
         }
     }
 
@@ -659,7 +658,6 @@ namespace EcoDiffReport
                     }
                     return _amount_base;
                 }
-                set { }
             }
 
             /// <summary>
